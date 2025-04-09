@@ -43,7 +43,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
-  String _clubNo = ''; // 반환받은 clubno를 저장할 변수
+  String _clubNo = '';
 
   Future<void> _login() async {
     final phoneno = _usernameController.text;
@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (data.containsKey('clubno')) {
           setState(() {
             _clubNo = data['clubno'].toString();
-            _errorMessage = ''; // 에러 메시지 초기화
+            _errorMessage = '';
           });
 
           // 메인 화면으로 이동
@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
           });
         } else {
           setState(() {
-            _errorMessage = '알 수 없는 응답 형식입니다.';
+            _errorMessage = '자신의 전화번호로 로그인해 주세요. 숫자로만 입력해 주세요.';
           });
         }
       } else {
@@ -88,7 +88,6 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
-      // 네트워크 오류 처리
       setState(() {
         _errorMessage = '네트워크 오류: $e';
       });
@@ -100,20 +99,28 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('로그인'),
+        backgroundColor: Colors.yellow,
+        title: Text('국제라이온스협회 355-A지구 15지역'),
       ),
+      backgroundColor: Colors.yellow,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            Image.asset(
+              'assets/loginlogo.png',
+              width: 300, // 로고 너비 설정
+              height: 300, // 로고 높이 설정
+            ),
+            SizedBox(height: 16), // 로고와 입력창 사이 간격
             TextField(
               controller: _usernameController,
               decoration: InputDecoration(
                 labelText: '전화번호',
                 border: OutlineInputBorder(),
               ),
-              keyboardType: TextInputType.phone, // 전화번호 입력을 위한 키보드 설정
+              keyboardType: TextInputType.phone,
             ),
             SizedBox(height: 16),
             if (_errorMessage.isNotEmpty)
@@ -140,8 +147,10 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.yellow,
         title: Text('15지역 회원 주소록'),
       ),
+      backgroundColor: Colors.yellow,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

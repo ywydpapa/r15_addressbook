@@ -9,8 +9,10 @@ class ClubDocsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.yellow,
         title: Text('클럽 문서 목록'),
       ),
+      backgroundColor: Colors.yellow,
       body: clubNo != null
           ? FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchClubDocs(clubNo),
@@ -34,8 +36,6 @@ class ClubDocsScreen extends StatelessWidget {
                   margin: EdgeInsets.all(8.0),
                   child: ListTile(
                     title: Text(doc['docTitle'] ?? '제목 없음'),
-                    subtitle: Text('유형: ${doc['docType'] ?? '알 수 없음'}'),
-                    trailing: Text('문서 번호: ${doc['docNo'] ?? 'N/A'}'),
                     onTap: () {
                       Navigator.pushNamed(
                         context,

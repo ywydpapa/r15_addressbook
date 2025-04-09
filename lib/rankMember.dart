@@ -83,8 +83,10 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.yellow,
         title: Text('직책별 회원 리스트'),
       ),
+      backgroundColor: Colors.yellow,
       body: Column(
         children: [
           // 드롭다운 필터

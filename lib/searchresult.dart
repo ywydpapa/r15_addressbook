@@ -83,8 +83,10 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.yellow,
         title: Text('회원 검색'),
       ),
+      backgroundColor: Colors.yellow,
       body: Column(
         children: [
           Padding(

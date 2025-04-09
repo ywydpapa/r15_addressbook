@@ -8,6 +8,15 @@ class Memberdtl {
   final String memberPhone;
   final String rankTitle;
   final String? mPhotoBase64;
+  final String? memberMF;
+  final String? memberAddress;
+  final String? memberEmail;
+  final String? addMemo;
+  final String? memberBirth;
+  final String? clubName;
+  final String? nameCard;
+  final String? spousePhoto;
+
 
   Memberdtl({
     required this.memberNo,
@@ -15,6 +24,14 @@ class Memberdtl {
     required this.memberPhone,
     required this.rankTitle,
     this.mPhotoBase64,
+    this.memberMF,
+    this.memberAddress,
+    this.memberEmail,
+    this.addMemo,
+    this.memberBirth,
+    required this.clubName,
+    this.nameCard,
+    this.spousePhoto,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -24,6 +41,14 @@ class Memberdtl {
       memberPhone: json['memberPhone'] ?? '',
       rankTitle: json['rankTitle'] ?? '',
       mPhotoBase64: json['mPhotoBase64'],
+      memberMF: json['memberMF'] ?? '',
+      memberAddress: json['memberAddress'] ?? '',
+      memberEmail: json['memberEmail'] ?? '',
+      addMemo: json['addMemo'] ?? '',
+      memberBirth: json['memberBirth'] ?? '',
+      clubName: json['clubName'] ?? '소속클럽 없음',
+      nameCard: json['nameCard'],
+      spousePhoto: json['spousePhoto'],
     );
   }
 }
@@ -101,40 +126,46 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           } else {
             final member = snapshot.data!;
             return Column(
-              crossAxisAlignment: CrossAxisAlignment.center, // 수평 중앙 정렬
+              crossAxisAlignment: CrossAxisAlignment.start, // 전체 레이아웃 왼쪽 정렬
               mainAxisAlignment: MainAxisAlignment.start, // 전체 레이아웃 상단부터 시작
               children: [
                 SizedBox(height: 16), // 상단 여백
-                // 사진 표시 로직
-                member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-                    ? Image.memory(
-                  base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-                  height: 280,
-                  width: 200,
-                  fit: BoxFit.cover,
-                )
-                    : Image.asset(
-                  'assets/defaultphoto.png',
-                  height: 280,
-                  width: 200,
-                  fit: BoxFit.cover,
+                // 사진만 중앙 정렬
+                Center(
+                  child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
+                      ? Image.memory(
+                    base64Decode(cleanBase64Data(member.mPhotoBase64!)),
+                    height: 280,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  )
+                      : Image.asset(
+                    'assets/defaultphoto.png',
+                    height: 280,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 SizedBox(height: 24), // 사진 아래 여백
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 왼쪽 정렬
                     children: [
                       Text(
-                        'Name: ${member.memberName.isNotEmpty ? member.memberName : 'No Name Available'}',
+                        '회원성명: ${member.memberName.isNotEmpty ? member.memberName : 'No Name Available'}',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 8),
-                      Text('Rank: ${member.rankTitle}'),
-                      SizedBox(height: 8),
-                      Text('Phone: ${member.memberPhone.isNotEmpty ? member.memberPhone : 'No Phone Available'}'),
-                      SizedBox(height: 8),
-                      Text('Member No: ${member.memberNo ?? 'Unknown'}'),
+                      SizedBox(height: 10),
+                      Text('소속클럽: ${member.clubName}'),
+                      SizedBox(height: 10),
+                      Text('직책: ${member.rankTitle}'),
+                      SizedBox(height: 10),
+                      Text('연락처: ${member.memberPhone.isNotEmpty ? member.memberPhone : 'No Phone Number'}'),
+                      SizedBox(height: 10),
+                      Text('주소: ${member.memberAddress ?? 'Unknown'}'),
+                      SizedBox(height: 10),
+                      Text('생년월일: ${member.memberBirth ?? 'Unknown'}'),
                     ],
                   ),
                 ),

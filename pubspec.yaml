@@ -83,5 +83,6 @@ flutter:
   assets:
     - assets/default.png
     - assets/defaultphoto.png
+    - assets/loginlogo.png
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

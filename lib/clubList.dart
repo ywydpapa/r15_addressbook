@@ -62,8 +62,10 @@ class _ClubListScreenState extends State<ClubListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Club List'),
+        backgroundColor: Colors.yellow,
+        title: Text('클럽 리스트'),
       ),
+      backgroundColor: Colors.yellow,
       body: FutureBuilder<List<Club>>(
         future: _clubList,
         builder: (context, snapshot) {
@@ -85,7 +87,6 @@ class _ClubListScreenState extends State<ClubListScreen> {
                       child: Text(club.clubNo.toString()),
                     ),
                     title: Text(club.clubName),
-                    subtitle: Text('Region: ${club.regionNo}'),
                     onTap: () {
                       // 리스트 항목 클릭 시 memberList.dart 화면으로 이동
                       Navigator.push(
