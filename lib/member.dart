@@ -18,6 +18,7 @@ class Memberdtl {
   final String? spousePhoto;
   final String? spouseName;
   final String? spousePhone;
+  final String? spouseBirth;
 
   Memberdtl({
     required this.memberNo,
@@ -35,6 +36,7 @@ class Memberdtl {
     this.spousePhoto,
     this.spouseName,
     this.spousePhone,
+    this.spouseBirth,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -54,6 +56,7 @@ class Memberdtl {
       spousePhoto: json['spousePhoto'],
       spouseName: json['spouseName'],
       spousePhone: json['spousePhone'],
+      spouseBirth: json['spouseBirth'],
     );
   }
 }
@@ -241,6 +244,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         SizedBox(height: 10),
         Text(
           '배우자 연락처: ${member.spousePhone ?? 'Unknown'}',
+          style: TextStyle(fontSize: 18),
+        ),
+        SizedBox(height: 10),
+        Text(
+          '배우자 생일: ${member.spouseBirth ?? 'Unknown'}',
           style: TextStyle(fontSize: 18),
         ),
       ],
