@@ -16,7 +16,8 @@ class Memberdtl {
   final String? clubName;
   final String? nameCard;
   final String? spousePhoto;
-
+  final String? spouseName;
+  final String? spousePhone;
 
   Memberdtl({
     required this.memberNo,
@@ -32,6 +33,8 @@ class Memberdtl {
     required this.clubName,
     this.nameCard,
     this.spousePhoto,
+    this.spouseName,
+    this.spousePhone,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -49,6 +52,8 @@ class Memberdtl {
       clubName: json['clubName'] ?? '소속클럽 없음',
       nameCard: json['nameCard'],
       spousePhoto: json['spousePhoto'],
+      spouseName: json['spouseName'],
+      spousePhone: json['spousePhone'],
     );
   }
 }
@@ -81,8 +86,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
       if (data.containsKey('memberdtl') && (data['memberdtl'] as List).isNotEmpty) {
         final memberData = data['memberdtl'][0];
-        if (memberData.containsKey('mPhotoBase64')) {
-        }
         return Memberdtl.fromJson(memberData);
       } else {
         throw Exception('No member detail found');
@@ -93,7 +96,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   String cleanBase64Data(String base64Data) {
-    // 헤더 제거 (예: data:image/jpeg;base64,)
     if (base64Data.contains(',')) {
       base64Data = base64Data.split(',')[1];
     }
@@ -125,55 +127,123 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             return Center(child: Text('No data found'));
           } else {
             final member = snapshot.data!;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // 전체 레이아웃 왼쪽 정렬
-              mainAxisAlignment: MainAxisAlignment.start, // 전체 레이아웃 상단부터 시작
+            return PageView(
               children: [
-                SizedBox(height: 16), // 상단 여백
-                // 사진만 중앙 정렬
-                Center(
-                  child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-                      ? Image.memory(
-                    base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-                    height: 280,
-                    width: 200,
-                    fit: BoxFit.cover,
-                  )
-                      : Image.asset(
-                    'assets/defaultphoto.png',
-                    height: 280,
-                    width: 200,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                SizedBox(height: 24), // 사진 아래 여백
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, // 텍스트 왼쪽 정렬
-                    children: [
-                      Text(
-                        '회원성명: ${member.memberName.isNotEmpty ? member.memberName : 'No Name Available'}',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10),
-                      Text('소속클럽: ${member.clubName}'),
-                      SizedBox(height: 10),
-                      Text('직책: ${member.rankTitle}'),
-                      SizedBox(height: 10),
-                      Text('연락처: ${member.memberPhone.isNotEmpty ? member.memberPhone : 'No Phone Number'}'),
-                      SizedBox(height: 10),
-                      Text('주소: ${member.memberAddress ?? 'Unknown'}'),
-                      SizedBox(height: 10),
-                      Text('생년월일: ${member.memberBirth ?? 'Unknown'}'),
-                    ],
-                  ),
-                ),
+                // 첫 번째 페이지: 기본 회원 정보
+                _buildMemberInfoPage(member),
+                // 두 번째 페이지: 명함 이미지와 소속 클럽
+                _buildNameCardPage(member),
+                // 세 번째 페이지: 배우자 정보
+                _buildSpouseInfoPage(member),
               ],
             );
           }
         },
       ),
+    );
+  }
+
+  Widget _buildMemberInfoPage(Memberdtl member) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16),
+        Center(
+          child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
+              ? Image.memory(
+            base64Decode(cleanBase64Data(member.mPhotoBase64!)),
+            height: 280,
+            width: 200,
+            fit: BoxFit.cover,
+          )
+              : Image.asset(
+            'assets/defaultphoto.png',
+            height: 280,
+            width: 200,
+            fit: BoxFit.cover,
+          ),
+        ),
+        SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '회원성명: ${member.memberName}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 10),
+              Text('소속클럽: ${member.clubName}'),
+              SizedBox(height: 10),
+              Text('직책: ${member.rankTitle}'),
+              SizedBox(height: 10),
+              Text('연락처: ${member.memberPhone}'),
+              SizedBox(height: 10),
+              Text('주소: ${member.memberAddress ?? 'Unknown'}'),
+              SizedBox(height: 10),
+              Text('생년월일: ${member.memberBirth ?? 'Unknown'}'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNameCardPage(Memberdtl member) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        member.nameCard != null && member.nameCard!.isNotEmpty
+            ? Image.memory(
+          base64Decode(cleanBase64Data(member.nameCard!)),
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        )
+            : Image.asset(
+          'assets/defaultphoto.png',
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        ),
+        SizedBox(height: 16),
+        Text(
+          '소속클럽: ${member.clubName}',
+          style: TextStyle(fontSize: 18),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSpouseInfoPage(Memberdtl member) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        member.spousePhoto != null && member.spousePhoto!.isNotEmpty
+            ? Image.memory(
+          base64Decode(cleanBase64Data(member.spousePhoto!)),
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        )
+            : Image.asset(
+          'assets/defaultphoto.png',
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        ),
+        SizedBox(height: 16),
+        Text(
+          '배우자 이름: ${member.spouseName ?? 'Unknown'}',
+          style: TextStyle(fontSize: 18),
+        ),
+        SizedBox(height: 10),
+        Text(
+          '배우자 연락처: ${member.spousePhone ?? 'Unknown'}',
+          style: TextStyle(fontSize: 18),
+        ),
+      ],
     );
   }
 }
