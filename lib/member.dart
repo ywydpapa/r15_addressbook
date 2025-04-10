@@ -213,6 +213,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               Text('주소: ${member.memberAddress ?? 'Unknown'}'),
               SizedBox(height: 10),
               Text('생년월일: ${member.memberBirth ?? 'Unknown'}'),
+              SizedBox(height: 30),
+              Text('추가 기재 사항: ${member.addMemo ?? '없음'}'),
             ],
           ),
         ),
@@ -239,7 +241,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             ),
         SizedBox(height: 16),
         Text('소속클럽: ${member.clubName}', style: TextStyle(fontSize: 18)),
-        Text('사무실주소: ${member.officeAddress}', style: TextStyle(fontSize: 18)),
+        Text('사무실주소: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
       ],
     );
   }
