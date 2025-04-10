@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'memberList.dart';
+import 'config/api_config.dart';
 
 void main() {
   runApp(MyApp());
@@ -50,7 +51,7 @@ class _ClubListScreenState extends State<ClubListScreen> {
 
   Future<List<Club>> fetchClubList() async {
     final response = await http.get(
-      Uri.parse('http://192.168.11.2:8000/phapp/clubList/15'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/clubList/15'),
     );
 
     if (response.statusCode == 200) {

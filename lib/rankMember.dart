@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'member.dart';
+import 'config/api_config.dart';
 
 class Member {
   final int memberNo;
@@ -48,7 +49,7 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
 
   Future<List<Member>> fetchMemberList() async {
     final response = await http.get(
-      Uri.parse('http://192.168.11.2:8000/phapp/rmemberList/'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/rmemberList/'),
     );
 
     if (response.statusCode == 200) {
@@ -133,7 +134,7 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                     itemBuilder: (context, index) {
                       final member = _filteredMembers[index];
                       final imageUrl =
-                          'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
+                          '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
 
                       return Card(
                         margin: EdgeInsets.all(8.0),

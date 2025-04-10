@@ -3,6 +3,7 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_html_all/flutter_html_all.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'config/api_config.dart';
 
 class DocViewerScreen extends StatefulWidget {
   const DocViewerScreen({super.key});
@@ -28,7 +29,7 @@ class DocViewerScreenState extends State<DocViewerScreen> {
     final dynamic docNo = ModalRoute.of(context)?.settings.arguments;
 
     // docNo를 URL에 반영
-    final String url = "http://192.168.11.2:8000/phapp/docviewer/$docNo";
+    final String url = "${ApiConf.baseUrl}/phapp/docviewer/$docNo";
 
     try {
       final response = await http.get(Uri.parse(url));

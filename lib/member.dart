@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'config/api_config.dart';
 
 class Memberdtl {
   final int? memberNo;
@@ -97,7 +98,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Future<Memberdtl> fetchMemberDetail(int memberNo) async {
     final response = await http.get(
-      Uri.parse('http://192.168.11.2:8000/phapp/memberDtl/$memberNo'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/memberDtl/$memberNo'),
     );
 
     if (response.statusCode == 200) {

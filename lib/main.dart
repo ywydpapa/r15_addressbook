@@ -6,6 +6,7 @@ import 'searchresult.dart';
 import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
+import 'config/api_config.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // 서버 요청
       final response = await http.get(
-        Uri.parse('http://192.168.11.2:8000/phapp/mlogin/$phoneno'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/mlogin/$phoneno'),
       );
 
       // 상태 코드 확인

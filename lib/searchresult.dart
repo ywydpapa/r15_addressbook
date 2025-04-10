@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import "member.dart";
+import 'member.dart';
+import 'config/api_config.dart';
 
 class Member {
   final int memberNo;
@@ -50,7 +51,7 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.11.2:8000/phapp/searchmember/$keyword'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/searchmember/$keyword'),
       );
 
       if (response.statusCode == 200) {
@@ -121,7 +122,7 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
                       itemBuilder: (context, index) {
                         final member = _searchResults[index];
                         final imageUrl =
-                            'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
+                            '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
                         return Card(
                           margin: EdgeInsets.all(8.0),
                           child: ListTile(

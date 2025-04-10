@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'config/api_config.dart';
 
 class ClubDocsScreen extends StatelessWidget {
   const ClubDocsScreen({super.key});
@@ -59,7 +60,7 @@ class ClubDocsScreen extends StatelessWidget {
     try {
       // API 호출
       final response = await http.get(
-        Uri.parse('http://192.168.11.2:8000/phapp/clubdocs/$mclubNo'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/clubdocs/$mclubNo'),
       );
 
       if (response.statusCode == 200) {
