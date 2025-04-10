@@ -47,16 +47,20 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
   }
 
   Future<List<Member>> fetchMemberList() async {
-    final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/rmemberList/'));
+    final response = await http.get(
+      Uri.parse('http://192.168.11.2:8000/phapp/rmemberList/'),
+    );
 
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
       List<dynamic> members = data['members'];
-      List<Member> memberList = members.map((json) => Member.fromJson(json)).toList();
+      List<Member> memberList =
+          members.map((json) => Member.fromJson(json)).toList();
 
       // 직책 목록 추출
-      final rankTitles = memberList.map((member) => member.rankTitle).toSet().toList();
+      final rankTitles =
+          memberList.map((member) => member.rankTitle).toSet().toList();
 
       setState(() {
         _allMembers = memberList; // 전체 멤버 리스트 저장
@@ -73,21 +77,20 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
   void _filterMembersByRank(String rankTitle) {
     setState(() {
       _selectedRank = rankTitle; // 선택된 직책 저장
-      _filteredMembers = _allMembers.where((member) {
-        return member.rankTitle == rankTitle;
-      }).toList();
+      _filteredMembers =
+          _allMembers.where((member) {
+            return member.rankTitle == rankTitle;
+          }).toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    final String? mclubNo =
+        ModalRoute.of(context)?.settings.arguments as String?;
     print('RankmemberScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        title: Text('직책별 회원 리스트'),
-      ),
+      appBar: AppBar(backgroundColor: Colors.yellow, title: Text('직책별 회원 리스트')),
       backgroundColor: Colors.yellow,
       body: Column(
         children: [
@@ -96,12 +99,10 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
             padding: const EdgeInsets.all(8.0),
             child: DropdownButtonFormField<String>(
               value: _selectedRank,
-              items: _rankTitles.map((rank) {
-                return DropdownMenuItem(
-                  value: rank,
-                  child: Text(rank),
-                );
-              }).toList(),
+              items:
+                  _rankTitles.map((rank) {
+                    return DropdownMenuItem(value: rank, child: Text(rank));
+                  }).toList(),
               onChanged: (value) {
                 if (value != null) {
                   _filterMembersByRank(value);
@@ -131,7 +132,8 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                     itemCount: _filteredMembers.length,
                     itemBuilder: (context, index) {
                       final member = _filteredMembers[index];
-                      final imageUrl = 'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
+                      final imageUrl =
+                          'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
 
                       return Card(
                         margin: EdgeInsets.all(8.0),
@@ -162,14 +164,21 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('직책: ${member.rankTitle}'),
-                              Text('연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}'),
+                              Text(
+                                '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                              ),
                             ],
                           ),
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName, mclubNo: mclubNo,),
+                                builder:
+                                    (context) => MemberDetailScreen(
+                                      memberNo: member.memberNo,
+                                      memberName: member.memberName,
+                                      mclubNo: mclubNo,
+                                    ),
                               ),
                             );
                           },

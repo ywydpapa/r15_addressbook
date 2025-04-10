@@ -34,10 +34,13 @@ class DocViewerScreenState extends State<DocViewerScreen> {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> jsonResponse = json.decode(utf8.decode(response.bodyBytes));
+        final Map<String, dynamic> jsonResponse = json.decode(
+          utf8.decode(response.bodyBytes),
+        );
         setState(() {
           htmlData = jsonResponse["doc"][0]["cDoc"]; // API에서 받은 HTML 본문
-          htmlTitle = jsonResponse["doc"][0]["title"] ?? "문서 제목 없음"; // 타이틀 데이터, 없으면 기본값
+          htmlTitle =
+              jsonResponse["doc"][0]["title"] ?? "문서 제목 없음"; // 타이틀 데이터, 없으면 기본값
           isLoading = false; // 로딩 완료
         });
         print("HTML data and title loaded successfully."); // 성공 메시지
@@ -72,106 +75,123 @@ class DocViewerScreenState extends State<DocViewerScreen> {
           }
         },
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator()) // 로딩 중 표시
-          : SingleChildScrollView(
-        child: Html(
-          anchorKey: staticAnchorKey,
-          data: htmlData, // API에서 가져온 HTML 데이터 사용
-          style: {
-            "table": Style(
-              backgroundColor: const Color.fromARGB(0x50, 0xee, 0xee, 0xee),
-            ),
-            "th": Style(
-              padding: HtmlPaddings.all(6),
-              backgroundColor: Colors.grey,
-            ),
-            "td": Style(
-              padding: HtmlPaddings.all(6),
-              border: const Border(bottom: BorderSide(color: Colors.grey)),
-            ),
-            'h5': Style(maxLines: 2, textOverflow: TextOverflow.ellipsis),
-            'flutter': Style(
-              display: Display.block,
-              fontSize: FontSize(5, Unit.em),
-            ),
-            ".second-table": Style(
-              backgroundColor: Colors.transparent,
-            ),
-            ".second-table tr td:first-child": Style(
-              fontWeight: FontWeight.bold,
-              textAlign: TextAlign.end,
-            ),
-          },
-          extensions: [
-            TagWrapExtension(
-                tagsToWrap: {"table"},
-                builder: (child) {
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: child,
-                  );
-                }),
-            TagExtension(
-              tagsToExtend: {"tex"},
-              builder: (context) => Math.tex(
-                context.innerHtml,
-                mathStyle: MathStyle.display,
-                textStyle: context.styledElement?.style.generateTextStyle(),
-                onErrorFallback: (FlutterMathException e) {
-                  return Text(e.message);
-                },
-              ),
-            ),
-            TagExtension.inline(
-              tagsToExtend: {"bird"},
-              child: const TextSpan(text: "🐦"),
-            ),
-            TagExtension(
-              tagsToExtend: {"flutter"},
-              builder: (context) => CssBoxWidget(
-                style: context.styledElement!.style,
-                child: FlutterLogo(
-                  style: context.attributes['horizontal'] != null
-                      ? FlutterLogoStyle.horizontal
-                      : FlutterLogoStyle.markOnly,
-                  textColor: context.styledElement!.style.color!,
-                  size: context.styledElement!.style.fontSize!.value,
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator()) // 로딩 중 표시
+              : SingleChildScrollView(
+                child: Html(
+                  anchorKey: staticAnchorKey,
+                  data: htmlData,
+                  // API에서 가져온 HTML 데이터 사용
+                  style: {
+                    "table": Style(
+                      backgroundColor: const Color.fromARGB(
+                        0x50,
+                        0xee,
+                        0xee,
+                        0xee,
+                      ),
+                    ),
+                    "th": Style(
+                      padding: HtmlPaddings.all(6),
+                      backgroundColor: Colors.grey,
+                    ),
+                    "td": Style(
+                      padding: HtmlPaddings.all(6),
+                      border: const Border(
+                        bottom: BorderSide(color: Colors.grey),
+                      ),
+                    ),
+                    'h5': Style(
+                      maxLines: 2,
+                      textOverflow: TextOverflow.ellipsis,
+                    ),
+                    'flutter': Style(
+                      display: Display.block,
+                      fontSize: FontSize(5, Unit.em),
+                    ),
+                    ".second-table": Style(backgroundColor: Colors.transparent),
+                    ".second-table tr td:first-child": Style(
+                      fontWeight: FontWeight.bold,
+                      textAlign: TextAlign.end,
+                    ),
+                  },
+                  extensions: [
+                    TagWrapExtension(
+                      tagsToWrap: {"table"},
+                      builder: (child) {
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: child,
+                        );
+                      },
+                    ),
+                    TagExtension(
+                      tagsToExtend: {"tex"},
+                      builder:
+                          (context) => Math.tex(
+                            context.innerHtml,
+                            mathStyle: MathStyle.display,
+                            textStyle:
+                                context.styledElement?.style
+                                    .generateTextStyle(),
+                            onErrorFallback: (FlutterMathException e) {
+                              return Text(e.message);
+                            },
+                          ),
+                    ),
+                    TagExtension.inline(
+                      tagsToExtend: {"bird"},
+                      child: const TextSpan(text: "🐦"),
+                    ),
+                    TagExtension(
+                      tagsToExtend: {"flutter"},
+                      builder:
+                          (context) => CssBoxWidget(
+                            style: context.styledElement!.style,
+                            child: FlutterLogo(
+                              style:
+                                  context.attributes['horizontal'] != null
+                                      ? FlutterLogoStyle.horizontal
+                                      : FlutterLogoStyle.markOnly,
+                              textColor: context.styledElement!.style.color!,
+                              size:
+                                  context.styledElement!.style.fontSize!.value,
+                            ),
+                          ),
+                    ),
+                    ImageExtension(
+                      handleAssetImages: false,
+                      handleDataImages: false,
+                      networkDomains: {"flutter.dev"},
+                      child: const FlutterLogo(size: 36),
+                    ),
+                    ImageExtension(
+                      handleAssetImages: false,
+                      handleDataImages: false,
+                      networkDomains: {"mydomain.com"},
+                      networkHeaders: {"Custom-Header": "some-value"},
+                    ),
+                    const MathHtmlExtension(),
+                    const AudioHtmlExtension(),
+                    const VideoHtmlExtension(),
+                    const IframeHtmlExtension(),
+                    const TableHtmlExtension(),
+                    const SvgHtmlExtension(),
+                  ],
+                  onLinkTap: (url, _, __) {
+                    debugPrint("Opening $url...");
+                  },
+                  onCssParseError: (css, messages) {
+                    debugPrint("css that errored: $css");
+                    debugPrint("error messages:");
+                    for (var element in messages) {
+                      debugPrint(element.toString());
+                    }
+                    return '';
+                  },
                 ),
               ),
-            ),
-            ImageExtension(
-              handleAssetImages: false,
-              handleDataImages: false,
-              networkDomains: {"flutter.dev"},
-              child: const FlutterLogo(size: 36),
-            ),
-            ImageExtension(
-              handleAssetImages: false,
-              handleDataImages: false,
-              networkDomains: {"mydomain.com"},
-              networkHeaders: {"Custom-Header": "some-value"},
-            ),
-            const MathHtmlExtension(),
-            const AudioHtmlExtension(),
-            const VideoHtmlExtension(),
-            const IframeHtmlExtension(),
-            const TableHtmlExtension(),
-            const SvgHtmlExtension(),
-          ],
-          onLinkTap: (url, _, __) {
-            debugPrint("Opening $url...");
-          },
-          onCssParseError: (css, messages) {
-            debugPrint("css that errored: $css");
-            debugPrint("error messages:");
-            for (var element in messages) {
-              debugPrint(element.toString());
-            }
-            return '';
-          },
-        ),
-      ),
     );
   }
 }

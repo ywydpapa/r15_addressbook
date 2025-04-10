@@ -12,9 +12,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: ClubListScreen(),
-    );
+    return MaterialApp(home: ClubListScreen());
   }
 }
 
@@ -23,7 +21,7 @@ class Club {
   final String clubName;
   final int regionNo;
 
-  Club({required this.clubNo, required this.clubName, required this.regionNo,});
+  Club({required this.clubNo, required this.clubName, required this.regionNo});
 
   factory Club.fromJson(Map<String, dynamic> json) {
     return Club(
@@ -51,7 +49,9 @@ class _ClubListScreenState extends State<ClubListScreen> {
   }
 
   Future<List<Club>> fetchClubList() async {
-    final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/clubList/15'));
+    final response = await http.get(
+      Uri.parse('http://192.168.11.2:8000/phapp/clubList/15'),
+    );
 
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
@@ -62,15 +62,14 @@ class _ClubListScreenState extends State<ClubListScreen> {
       throw Exception('Failed to load club list');
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    final String? mclubNo =
+        ModalRoute.of(context)?.settings.arguments as String?;
     print('ClubListScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        title: Text('클럽 리스트'),
-      ),
+      appBar: AppBar(backgroundColor: Colors.yellow, title: Text('클럽 리스트')),
       backgroundColor: Colors.yellow,
       body: FutureBuilder<List<Club>>(
         future: _clubList,
@@ -89,16 +88,19 @@ class _ClubListScreenState extends State<ClubListScreen> {
                 return Card(
                   margin: EdgeInsets.all(8.0),
                   child: ListTile(
-                    leading: CircleAvatar(
-                      child: Text(club.clubNo.toString()),
-                    ),
+                    leading: CircleAvatar(child: Text(club.clubNo.toString())),
                     title: Text(club.clubName),
                     onTap: () {
                       // 리스트 항목 클릭 시 memberList.dart 화면으로 이동
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MemberListScreen(clubNo: club.clubNo, clubName: club.clubName, mclubNo: mclubNo),
+                          builder:
+                              (context) => MemberListScreen(
+                                clubNo: club.clubNo,
+                                clubName: club.clubName,
+                                mclubNo: mclubNo,
+                              ),
                         ),
                       );
                     },

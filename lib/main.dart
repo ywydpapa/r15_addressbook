@@ -7,7 +7,6 @@ import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
 
-
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
@@ -20,9 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Navigation Example',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
+      theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/login', // 초기 화면을 로그인 화면으로 설정
       routes: {
         '/login': (context) => LoginScreen(),
@@ -61,7 +58,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // 서버 요청
-      final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/mlogin/$phoneno'));
+      final response = await http.get(
+        Uri.parse('http://192.168.11.2:8000/phapp/mlogin/$phoneno'),
+      );
 
       // 상태 코드 확인
       if (response.statusCode == 200) {
@@ -98,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,15 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 16),
             if (_errorMessage.isNotEmpty)
-              Text(
-                _errorMessage,
-                style: TextStyle(color: Colors.red),
-              ),
+              Text(_errorMessage, style: TextStyle(color: Colors.red)),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _login,
-              child: Text('로그인'),
-            ),
+            ElevatedButton(onPressed: _login, child: Text('로그인')),
           ],
         ),
       ),
@@ -149,7 +141,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    final String? mclubNo =
+        ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -162,19 +155,23 @@ class HomeScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/clubList', arguments: mclubNo,);
+                Navigator.pushNamed(context, '/clubList', arguments: mclubNo);
               },
               child: Text('클럽별 회원 리스트'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/rankMembers',arguments: mclubNo,);
+                Navigator.pushNamed(
+                  context,
+                  '/rankMembers',
+                  arguments: mclubNo,
+                );
               },
               child: Text('직책별 회원 리스트'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/search', arguments: mclubNo,);
+                Navigator.pushNamed(context, '/search', arguments: mclubNo);
               },
               child: Text('키워드 회원 검색'),
             ),

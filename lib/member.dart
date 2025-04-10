@@ -45,7 +45,10 @@ class Memberdtl {
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
     return Memberdtl(
-      memberNo: json['memberNo'] != null ? int.tryParse(json['memberNo'].toString()) : null,
+      memberNo:
+          json['memberNo'] != null
+              ? int.tryParse(json['memberNo'].toString())
+              : null,
       memberName: json['memberName'] ?? '',
       memberPhone: json['memberPhone'] ?? '',
       rankTitle: json['rankTitle'] ?? '',
@@ -72,7 +75,12 @@ class MemberDetailScreen extends StatefulWidget {
   final String memberName;
   final String? mclubNo;
 
-  const MemberDetailScreen({super.key, required this.memberNo, required this.memberName, this.mclubNo,});
+  const MemberDetailScreen({
+    super.key,
+    required this.memberNo,
+    required this.memberName,
+    this.mclubNo,
+  });
 
   @override
   _MemberDetailScreenState createState() => _MemberDetailScreenState();
@@ -88,13 +96,16 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Future<Memberdtl> fetchMemberDetail(int memberNo) async {
-    final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/memberDtl/$memberNo'));
+    final response = await http.get(
+      Uri.parse('http://192.168.11.2:8000/phapp/memberDtl/$memberNo'),
+    );
 
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
 
-      if (data.containsKey('memberdtl') && (data['memberdtl'] as List).isNotEmpty) {
+      if (data.containsKey('memberdtl') &&
+          (data['memberdtl'] as List).isNotEmpty) {
         final memberData = data['memberdtl'][0];
         return Memberdtl.fromJson(memberData);
       } else {
@@ -125,9 +136,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final String? mclubNo = widget.mclubNo;
     print('멤버디테일에서 로그인클럽: $mclubNo'); // 디버깅용 출력
     return Scaffold(
-      appBar: AppBar(
-        title: Text('회원 상세 정보'),
-      ),
+      appBar: AppBar(title: Text('회원 상세 정보')),
       body: FutureBuilder<Memberdtl>(
         future: _memberDetail,
         builder: (context, snapshot) {
@@ -155,15 +164,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               pages.add(_buildSpouseInfoPage(member));
             }
 
-            return PageView(
-              children: pages,
-            );
+            return PageView(children: pages);
           }
         },
       ),
     );
   }
-
 
   Widget _buildMemberInfoPage(Memberdtl member) {
     return Column(
@@ -171,19 +177,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         SizedBox(height: 16),
         Center(
-          child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-              ? Image.memory(
-            base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-            height: 280,
-            width: 200,
-            fit: BoxFit.cover,
-          )
-              : Image.asset(
-            'assets/defaultphoto.png',
-            height: 280,
-            width: 200,
-            fit: BoxFit.cover,
-          ),
+          child:
+              member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
+                  ? Image.memory(
+                    base64Decode(cleanBase64Data(member.mPhotoBase64!)),
+                    height: 280,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  )
+                  : Image.asset(
+                    'assets/defaultphoto.png',
+                    height: 280,
+                    width: 200,
+                    fit: BoxFit.cover,
+                  ),
         ),
         SizedBox(height: 24),
         Padding(
@@ -218,26 +225,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         member.nameCard != null && member.nameCard!.isNotEmpty
             ? Image.memory(
-          base64Decode(cleanBase64Data(member.nameCard!)),
-          height: 200,
-          width: 360,
-          fit: BoxFit.cover,
-        )
+              base64Decode(cleanBase64Data(member.nameCard!)),
+              height: 200,
+              width: 360,
+              fit: BoxFit.cover,
+            )
             : Image.asset(
-          'assets/defaultphoto.png',
-          height: 200,
-          width: 300,
-          fit: BoxFit.cover,
-        ),
+              'assets/defaultphoto.png',
+              height: 200,
+              width: 300,
+              fit: BoxFit.cover,
+            ),
         SizedBox(height: 16),
-        Text(
-          '소속클럽: ${member.clubName}',
-          style: TextStyle(fontSize: 18),
-        ),
-        Text(
-          '사무실주소: ${member.officeAddress}',
-          style: TextStyle(fontSize: 18),
-        ),
+        Text('소속클럽: ${member.clubName}', style: TextStyle(fontSize: 18)),
+        Text('사무실주소: ${member.officeAddress}', style: TextStyle(fontSize: 18)),
       ],
     );
   }
@@ -248,17 +249,17 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         member.spousePhoto != null && member.spousePhoto!.isNotEmpty
             ? Image.memory(
-          base64Decode(cleanBase64Data(member.spousePhoto!)),
-          height: 280,
-          width: 200,
-          fit: BoxFit.cover,
-        )
+              base64Decode(cleanBase64Data(member.spousePhoto!)),
+              height: 280,
+              width: 200,
+              fit: BoxFit.cover,
+            )
             : Image.asset(
-          'assets/defaultphoto.png',
-          height: 280,
-          width: 200,
-          fit: BoxFit.cover,
-        ),
+              'assets/defaultphoto.png',
+              height: 280,
+              width: 200,
+              fit: BoxFit.cover,
+            ),
         SizedBox(height: 16),
         Text(
           '배우자 이름: ${member.spouseName ?? 'Unknown'}',

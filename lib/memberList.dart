@@ -31,7 +31,12 @@ class MemberListScreen extends StatefulWidget {
   final String clubName;
   final String? mclubNo;
 
-  const MemberListScreen({super.key, required this.clubNo, required this.clubName, required this.mclubNo,});
+  const MemberListScreen({
+    super.key,
+    required this.clubNo,
+    required this.clubName,
+    required this.mclubNo,
+  });
 
   @override
   _MemberListScreenState createState() => _MemberListScreenState();
@@ -57,12 +62,15 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 
   Future<List<Member>> fetchMemberList(int clubNo) async {
-    final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/memberList/$clubNo'));
+    final response = await http.get(
+      Uri.parse('http://192.168.11.2:8000/phapp/memberList/$clubNo'),
+    );
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
       List<dynamic> members = data['members'];
-      List<Member> memberList = members.map((json) => Member.fromJson(json)).toList();
+      List<Member> memberList =
+          members.map((json) => Member.fromJson(json)).toList();
 
       setState(() {
         _allMembers = memberList; // 전체 멤버 리스트 저장
@@ -78,10 +86,11 @@ class _MemberListScreenState extends State<MemberListScreen> {
   void _filterMembers() {
     String query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredMembers = _allMembers.where((member) {
-        return member.memberName.toLowerCase().contains(query) ||
-            member.memberPhone.toLowerCase().contains(query);
-      }).toList();
+      _filteredMembers =
+          _allMembers.where((member) {
+            return member.memberName.toLowerCase().contains(query) ||
+                member.memberPhone.toLowerCase().contains(query);
+          }).toList();
     });
   }
 
@@ -126,7 +135,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     itemCount: _filteredMembers.length,
                     itemBuilder: (context, index) {
                       final member = _filteredMembers[index];
-                      final imageUrl = 'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
+                      final imageUrl =
+                          'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
                       return Card(
                         margin: EdgeInsets.all(8.0),
                         child: ListTile(
@@ -156,14 +166,21 @@ class _MemberListScreenState extends State<MemberListScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('직책: ${member.rankTitle}'),
-                              Text('연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}'),
+                              Text(
+                                '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                              ),
                             ],
                           ),
                           onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName, mclubNo: widget.mclubNo ),
+                                builder:
+                                    (context) => MemberDetailScreen(
+                                      memberNo: member.memberNo,
+                                      memberName: member.memberName,
+                                      mclubNo: widget.mclubNo,
+                                    ),
                               ),
                             );
                           },
