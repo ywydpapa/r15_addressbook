@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'memberList.dart';
 import 'dart:convert';
 import 'clubList.dart';
 import 'searchresult.dart';
@@ -14,6 +15,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -36,6 +39,8 @@ class MyApp extends StatelessWidget {
 }
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -141,10 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final String? clubNo = ModalRoute.of(context)?.settings.arguments as String?;
-
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -157,29 +163,29 @@ class HomeScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/clubList');
+                Navigator.pushNamed(context, '/clubList', arguments: mclubNo,);
               },
               child: Text('클럽별 회원 리스트'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/rankMembers');
+                Navigator.pushNamed(context, '/rankMembers',arguments: mclubNo,);
               },
               child: Text('직책별 회원 리스트'),
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/search');
+                Navigator.pushNamed(context, '/search', arguments: mclubNo,);
               },
               child: Text('키워드 회원 검색'),
             ),
             ElevatedButton(
               onPressed: () {
-                if (clubNo != null) {
+                if (mclubNo != null) {
                   Navigator.pushNamed(
                     context,
                     '/clubDocs',
-                    arguments: clubNo, // 클럽 번호 전달
+                    arguments: mclubNo, // 클럽 번호 전달
                   );
                 } else {
                   // 클럽 번호가 없을 경우 경고 메시지와 로그인 화면으로 리다이렉트

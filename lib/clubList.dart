@@ -8,6 +8,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -21,7 +23,7 @@ class Club {
   final String clubName;
   final int regionNo;
 
-  Club({required this.clubNo, required this.clubName, required this.regionNo});
+  Club({required this.clubNo, required this.clubName, required this.regionNo,});
 
   factory Club.fromJson(Map<String, dynamic> json) {
     return Club(
@@ -33,6 +35,8 @@ class Club {
 }
 
 class ClubListScreen extends StatefulWidget {
+  const ClubListScreen({super.key});
+
   @override
   _ClubListScreenState createState() => _ClubListScreenState();
 }
@@ -60,6 +64,8 @@ class _ClubListScreenState extends State<ClubListScreen> {
   }
   @override
   Widget build(BuildContext context) {
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    print('ClubListScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -92,7 +98,7 @@ class _ClubListScreenState extends State<ClubListScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MemberListScreen(clubNo: club.clubNo, clubName: club.clubName),
+                          builder: (context) => MemberListScreen(clubNo: club.clubNo, clubName: club.clubName, mclubNo: mclubNo),
                         ),
                       );
                     },

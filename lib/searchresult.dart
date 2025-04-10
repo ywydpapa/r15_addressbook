@@ -27,6 +27,8 @@ class Member {
 }
 
 class MemberSearchScreen extends StatefulWidget {
+  const MemberSearchScreen({super.key});
+
   @override
   _MemberSearchScreenState createState() => _MemberSearchScreenState();
 }
@@ -81,6 +83,8 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    print('SearchScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -123,7 +127,6 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
               itemBuilder: (context, index) {
                 final member = _searchResults[index];
                 final imageUrl = 'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
-
                 return Card(
                   margin: EdgeInsets.all(8.0),
                   child: ListTile(
@@ -160,7 +163,7 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName),
+                          builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName, mclubNo: mclubNo,),
                         ),
                       );
                     },

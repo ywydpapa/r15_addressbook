@@ -3,19 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class ClubDocsScreen extends StatelessWidget {
+  const ClubDocsScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
-    final String? clubNo = ModalRoute.of(context)?.settings.arguments as String?;
-
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
         title: Text('클럽 문서 목록'),
       ),
       backgroundColor: Colors.yellow,
-      body: clubNo != null
+      body: mclubNo != null
           ? FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchClubDocs(clubNo),
+        future: fetchClubDocs(mclubNo),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -56,10 +57,10 @@ class ClubDocsScreen extends StatelessWidget {
     );
   }
 
-  Future<List<Map<String, dynamic>>> fetchClubDocs(String clubNo) async {
+  Future<List<Map<String, dynamic>>> fetchClubDocs(String mclubNo) async {
     try {
       // API 호출
-      final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/clubdocs/$clubNo'));
+      final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/clubdocs/$mclubNo'));
 
       if (response.statusCode == 200) {
         // UTF-8 디코딩을 통해 한글 처리

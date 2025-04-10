@@ -27,7 +27,7 @@ class Member {
 }
 
 class RankMemberScreen extends StatefulWidget {
-  RankMemberScreen();
+  const RankMemberScreen({super.key});
 
   @override
   _RankMemberScreenState createState() => _RankMemberScreenState();
@@ -81,6 +81,8 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    print('RankmemberScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -167,7 +169,7 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName),
+                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName, mclubNo: mclubNo,),
                               ),
                             );
                           },

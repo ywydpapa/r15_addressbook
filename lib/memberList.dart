@@ -29,8 +29,9 @@ class Member {
 class MemberListScreen extends StatefulWidget {
   final int clubNo;
   final String clubName;
+  final String? mclubNo;
 
-  MemberListScreen({required this.clubNo, required this.clubName});
+  const MemberListScreen({super.key, required this.clubNo, required this.clubName, required this.mclubNo,});
 
   @override
   _MemberListScreenState createState() => _MemberListScreenState();
@@ -40,7 +41,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   late Future<List<Member>> _memberList;
   List<Member> _allMembers = []; // 전체 멤버 리스트
   List<Member> _filteredMembers = []; // 필터링된 멤버 리스트
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -57,7 +58,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
   Future<List<Member>> fetchMemberList(int clubNo) async {
     final response = await http.get(Uri.parse('http://192.168.11.2:8000/phapp/memberList/$clubNo'));
-
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
@@ -127,7 +127,6 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     itemBuilder: (context, index) {
                       final member = _filteredMembers[index];
                       final imageUrl = 'http://192.168.11.2:8000/thumbnails/${member.memberNo}.png';
-
                       return Card(
                         margin: EdgeInsets.all(8.0),
                         child: ListTile(
@@ -164,7 +163,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName),
+                                builder: (context) => MemberDetailScreen(memberNo: member.memberNo, memberName: member.memberName, mclubNo: widget.mclubNo ),
                               ),
                             );
                           },

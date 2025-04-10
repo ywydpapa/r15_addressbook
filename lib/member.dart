@@ -14,11 +14,13 @@ class Memberdtl {
   final String? addMemo;
   final String? memberBirth;
   final String? clubName;
+  final String? clubNo;
   final String? nameCard;
   final String? spousePhoto;
   final String? spouseName;
   final String? spousePhone;
   final String? spouseBirth;
+  final String? officeAddress;
 
   Memberdtl({
     required this.memberNo,
@@ -32,11 +34,13 @@ class Memberdtl {
     this.addMemo,
     this.memberBirth,
     required this.clubName,
+    this.clubNo,
     this.nameCard,
     this.spousePhoto,
     this.spouseName,
     this.spousePhone,
     this.spouseBirth,
+    this.officeAddress,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -52,11 +56,13 @@ class Memberdtl {
       addMemo: json['addMemo'] ?? '',
       memberBirth: json['memberBirth'] ?? '',
       clubName: json['clubName'] ?? '소속클럽 없음',
+      clubNo: json['clubNo'] != null ? json['clubNo'].toString() : null,
       nameCard: json['nameCard'],
       spousePhoto: json['spousePhoto'],
       spouseName: json['spouseName'],
       spousePhone: json['spousePhone'],
       spouseBirth: json['spouseBirth'],
+      officeAddress: json['officeAddress'],
     );
   }
 }
@@ -64,8 +70,9 @@ class Memberdtl {
 class MemberDetailScreen extends StatefulWidget {
   final int memberNo;
   final String memberName;
+  final String? mclubNo;
 
-  MemberDetailScreen({required this.memberNo, required this.memberName});
+  const MemberDetailScreen({super.key, required this.memberNo, required this.memberName, this.mclubNo,});
 
   @override
   _MemberDetailScreenState createState() => _MemberDetailScreenState();
@@ -115,6 +122,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final String? mclubNo = widget.mclubNo;
+    print('멤버디테일에서 로그인클럽: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(
         title: Text('회원 상세 정보'),
@@ -130,21 +139,31 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             return Center(child: Text('No data found'));
           } else {
             final member = snapshot.data!;
+            print('clubNo: ${member.clubNo}'); // 디버깅용 출력
+
+            List<Widget> pages = [
+              // 첫 번째 페이지: 기본 회원 정보
+              _buildMemberInfoPage(member),
+              // 두 번째 페이지: 명함 이미지와 소속 클럽
+              _buildNameCardPage(member),
+            ];
+
+            // clubNo와 mclubNo를 비교하여 배우자 페이지 추가
+            if (member.clubNo != null &&
+                mclubNo != null &&
+                member.clubNo == mclubNo) {
+              pages.add(_buildSpouseInfoPage(member));
+            }
+
             return PageView(
-              children: [
-                // 첫 번째 페이지: 기본 회원 정보
-                _buildMemberInfoPage(member),
-                // 두 번째 페이지: 명함 이미지와 소속 클럽
-                _buildNameCardPage(member),
-                // 세 번째 페이지: 배우자 정보
-                _buildSpouseInfoPage(member),
-              ],
+              children: pages,
             );
           }
         },
       ),
     );
   }
+
 
   Widget _buildMemberInfoPage(Memberdtl member) {
     return Column(
@@ -195,24 +214,28 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Widget _buildNameCardPage(Memberdtl member) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         member.nameCard != null && member.nameCard!.isNotEmpty
             ? Image.memory(
           base64Decode(cleanBase64Data(member.nameCard!)),
-          height: 280,
-          width: 200,
+          height: 200,
+          width: 360,
           fit: BoxFit.cover,
         )
             : Image.asset(
           'assets/defaultphoto.png',
-          height: 280,
-          width: 200,
+          height: 200,
+          width: 300,
           fit: BoxFit.cover,
         ),
         SizedBox(height: 16),
         Text(
           '소속클럽: ${member.clubName}',
+          style: TextStyle(fontSize: 18),
+        ),
+        Text(
+          '사무실주소: ${member.officeAddress}',
           style: TextStyle(fontSize: 18),
         ),
       ],
@@ -221,7 +244,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Widget _buildSpouseInfoPage(Memberdtl member) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         member.spousePhoto != null && member.spousePhoto!.isNotEmpty
             ? Image.memory(
