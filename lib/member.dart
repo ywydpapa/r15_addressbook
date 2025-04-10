@@ -242,6 +242,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         SizedBox(height: 16),
         Text('소속클럽: ${member.clubName}', style: TextStyle(fontSize: 18)),
         Text('사무실주소: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Text('우편번호: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Text('사무실 전화번호: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Text('업무용 이메일: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Text('웹페이지: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Text('업무용 SNS: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
       ],
     );
   }

@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
               width: 300, // 로고 너비 설정
               height: 300, // 로고 높이 설정
             ),
-            SizedBox(height: 16), // 로고와 입력창 사이 간격
+            SizedBox(height: 8), // 로고와 입력창 사이 간격
             TextField(
               controller: _usernameController,
               decoration: InputDecoration(
@@ -125,10 +125,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               keyboardType: TextInputType.phone,
             ),
-            SizedBox(height: 16),
+            SizedBox(height: 8),
             if (_errorMessage.isNotEmpty)
               Text(_errorMessage, style: TextStyle(color: Colors.red)),
-            SizedBox(height: 16),
+            SizedBox(height: 8),
             ElevatedButton(onPressed: _login, child: Text('로그인')),
           ],
         ),
