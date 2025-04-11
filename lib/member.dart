@@ -22,6 +22,17 @@ class Memberdtl {
   final String? spousePhone;
   final String? spouseBirth;
   final String? officeAddress;
+  final String? bisTitle;
+  final String? bisRank;
+  final String? bisType;
+  final String? bistypeTitle;
+  final String? offTel;
+  final String? offAddress;
+  final String? offEmail;
+  final String? offPostNo;
+  final String? offWeb;
+  final String? offSns;
+  final String? bisMemo;
 
   Memberdtl({
     required this.memberNo,
@@ -42,17 +53,25 @@ class Memberdtl {
     this.spousePhone,
     this.spouseBirth,
     this.officeAddress,
+    this.bisTitle,
+    this.bisRank,
+    this.bisType,
+    this.bistypeTitle,
+    this.offTel,
+    this.offAddress,
+    this.offEmail,
+    this.offPostNo,
+    this.offWeb,
+    this.offSns,
+    this.bisMemo,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
     return Memberdtl(
-      memberNo:
-          json['memberNo'] != null
-              ? int.tryParse(json['memberNo'].toString())
-              : null,
-      memberName: json['memberName'] ?? '',
-      memberPhone: json['memberPhone'] ?? '',
-      rankTitle: json['rankTitle'] ?? '',
+      memberNo: json['memberNo'] != null ? int.tryParse(json['memberNo'].toString()) : null,
+      memberName: json['memberName'] ?? '정보 없음',
+      memberPhone: json['memberPhone'] ?? '정보 없음',
+      rankTitle: json['rankTitle'] ?? '정보 없음',
       mPhotoBase64: json['mPhotoBase64'],
       memberMF: json['memberMF'] ?? '',
       memberAddress: json['memberAddress'] ?? '',
@@ -67,6 +86,17 @@ class Memberdtl {
       spousePhone: json['spousePhone'],
       spouseBirth: json['spouseBirth'],
       officeAddress: json['officeAddress'],
+      bisTitle: json['bisTitle'],
+      bisRank: json['bisRank'],
+      bisType: json['bisType'],
+      bistypeTitle: json['bistypeTitle'],
+      offTel: json['offtel'],
+      offAddress: json['offAddress'],
+      offEmail: json['offEmail'],
+      offPostNo: json['offPost'],
+      offWeb: json['offWeb'],
+      offSns: json['offSns'],
+      bisMemo: json['bisMemo'],
     );
   }
 }
@@ -105,8 +135,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
 
-      if (data.containsKey('memberdtl') &&
-          (data['memberdtl'] as List).isNotEmpty) {
+      if (data.containsKey('memberdtl') && (data['memberdtl'] as List).isNotEmpty) {
         final memberData = data['memberdtl'][0];
         return Memberdtl.fromJson(memberData);
       } else {
@@ -115,6 +144,21 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     } else {
       throw Exception('Failed to load member detail');
     }
+  }
+
+  TableRow _buildTableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(value, style: TextStyle(fontSize: 12)),
+        ),
+      ],
+    );
   }
 
   String cleanBase64Data(String base64Data) {
@@ -135,7 +179,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final String? mclubNo = widget.mclubNo;
-    print('멤버디테일에서 로그인클럽: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(title: Text('회원 상세 정보')),
       body: FutureBuilder<Memberdtl>(
@@ -149,19 +192,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             return Center(child: Text('No data found'));
           } else {
             final member = snapshot.data!;
-            print('clubNo: ${member.clubNo}'); // 디버깅용 출력
-
             List<Widget> pages = [
-              // 첫 번째 페이지: 기본 회원 정보
               _buildMemberInfoPage(member),
-              // 두 번째 페이지: 명함 이미지와 소속 클럽
               _buildNameCardPage(member),
             ];
 
-            // clubNo와 mclubNo를 비교하여 배우자 페이지 추가
-            if (member.clubNo != null &&
-                mclubNo != null &&
-                member.clubNo == mclubNo) {
+            if (member.clubNo != null && mclubNo != null && member.clubNo == mclubNo) {
               pages.add(_buildSpouseInfoPage(member));
             }
 
@@ -178,43 +214,36 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         SizedBox(height: 16),
         Center(
-          child:
-              member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-                  ? Image.memory(
-                    base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-                    height: 280,
-                    width: 200,
-                    fit: BoxFit.cover,
-                  )
-                  : Image.asset(
-                    'assets/defaultphoto.png',
-                    height: 280,
-                    width: 200,
-                    fit: BoxFit.cover,
-                  ),
+          child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
+              ? Image.memory(
+            base64Decode(cleanBase64Data(member.mPhotoBase64!)),
+            height: 280,
+            width: 200,
+            fit: BoxFit.cover,
+          )
+              : Image.asset(
+            'assets/defaultphoto.png',
+            height: 280,
+            width: 200,
+            fit: BoxFit.cover,
+          ),
         ),
         SizedBox(height: 24),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.only(left: 16.0),
+          child: Table(
+            columnWidths: {
+              0: FlexColumnWidth(1),
+              1: FlexColumnWidth(2),
+            },
             children: [
-              Text(
-                '회원성명: ${member.memberName}',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 10),
-              Text('소속클럽: ${member.clubName}'),
-              SizedBox(height: 10),
-              Text('직책: ${member.rankTitle}'),
-              SizedBox(height: 10),
-              Text('연락처: ${member.memberPhone}'),
-              SizedBox(height: 10),
-              Text('주소: ${member.memberAddress ?? 'Unknown'}'),
-              SizedBox(height: 10),
-              Text('생년월일: ${member.memberBirth ?? 'Unknown'}'),
-              SizedBox(height: 30),
-              Text('추가 기재 사항: ${member.addMemo ?? '없음'}'),
+              _buildTableRow('회원성명', member.memberName),
+              _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
+              _buildTableRow('직책', member.rankTitle),
+              _buildTableRow('연락처', member.memberPhone),
+              _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
+              _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
+              _buildTableRow('추가 기재 사항', member.addMemo ?? '없음'),
             ],
           ),
         ),
@@ -228,25 +257,40 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         member.nameCard != null && member.nameCard!.isNotEmpty
             ? Image.memory(
-              base64Decode(cleanBase64Data(member.nameCard!)),
-              height: 200,
-              width: 360,
-              fit: BoxFit.cover,
-            )
+          base64Decode(cleanBase64Data(member.nameCard!)),
+          height: 200,
+          width: 360,
+          fit: BoxFit.cover,
+        )
             : Image.asset(
-              'assets/defaultphoto.png',
-              height: 200,
-              width: 300,
-              fit: BoxFit.cover,
-            ),
+          'assets/defaultphoto.png',
+          height: 200,
+          width: 300,
+          fit: BoxFit.cover,
+        ),
         SizedBox(height: 16),
-        Text('소속클럽: ${member.clubName}', style: TextStyle(fontSize: 18)),
-        Text('사무실주소: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
-        Text('우편번호: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
-        Text('사무실 전화번호: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
-        Text('업무용 이메일: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
-        Text('웹페이지: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
-        Text('업무용 SNS: ${member.officeAddress ?? '없음'}', style: TextStyle(fontSize: 18)),
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: Table(
+            columnWidths: {
+              0: FlexColumnWidth(1),
+              1: FlexColumnWidth(2),
+            },
+            children: [
+              _buildTableRow('소속클럽', member.clubName ?? '없음'),
+              _buildTableRow('업체명', member.bisTitle ?? '없음'),
+              _buildTableRow('직책', member.bisRank ?? '없음'),
+              _buildTableRow('업종', member.bisType ?? '없음'),
+              _buildTableRow('상세업종', member.bistypeTitle ?? '없음'),
+              _buildTableRow('사무실주소', member.offAddress ?? '없음'),
+              _buildTableRow('우편번호', member.offPostNo ?? '없음'),
+              _buildTableRow('사무실 전화번호', member.offTel ?? '없음'),
+              _buildTableRow('업무용 이메일', member.offEmail ?? '없음'),
+              _buildTableRow('웹페이지', member.offWeb ?? '없음'),
+              _buildTableRow('업무용 SNS', member.offSns ?? '없음'),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -257,31 +301,31 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         member.spousePhoto != null && member.spousePhoto!.isNotEmpty
             ? Image.memory(
-              base64Decode(cleanBase64Data(member.spousePhoto!)),
-              height: 280,
-              width: 200,
-              fit: BoxFit.cover,
-            )
+          base64Decode(cleanBase64Data(member.spousePhoto!)),
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        )
             : Image.asset(
-              'assets/defaultphoto.png',
-              height: 280,
-              width: 200,
-              fit: BoxFit.cover,
-            ),
+          'assets/defaultphoto.png',
+          height: 280,
+          width: 200,
+          fit: BoxFit.cover,
+        ),
         SizedBox(height: 16),
-        Text(
-          '배우자 이름: ${member.spouseName ?? 'Unknown'}',
-          style: TextStyle(fontSize: 18),
-        ),
-        SizedBox(height: 10),
-        Text(
-          '배우자 연락처: ${member.spousePhone ?? 'Unknown'}',
-          style: TextStyle(fontSize: 18),
-        ),
-        SizedBox(height: 10),
-        Text(
-          '배우자 생일: ${member.spouseBirth ?? 'Unknown'}',
-          style: TextStyle(fontSize: 18),
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0),
+          child: Table(
+            columnWidths: {
+              0: FlexColumnWidth(1),
+              1: FlexColumnWidth(2),
+            },
+            children: [
+              _buildTableRow('배우자 이름', member.spouseName ?? 'Unknown'),
+              _buildTableRow('배우자 연락처', member.spousePhone ?? 'Unknown'),
+              _buildTableRow('배우자 생일', member.spouseBirth ?? 'Unknown'),
+            ],
+          ),
         ),
       ],
     );
