@@ -143,63 +143,107 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String? mclubNo =
-        ModalRoute.of(context)?.settings.arguments as String?;
+    ModalRoute.of(context)?.settings.arguments as String?;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
         title: Text('15지역 회원 주소록'),
       ),
       backgroundColor: Colors.yellow,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/clubList', arguments: mclubNo);
-              },
-              child: Text('클럽별 회원 리스트'),
+      body: Column(
+        children: [
+          // 상단 이미지 배치 (액자 스타일)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0), // 좌우 간격 추가
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white, // 배경색 (액자 배경)
+                border: Border.all(color: Colors.black, width: 2), // 테두리 설정
+                borderRadius: BorderRadius.circular(8), // 테두리에 둥글기 추가
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 2,
+                    blurRadius: 5,
+                    offset: Offset(0, 3), // 그림자 위치
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0), // 이미지와 테두리 사이 패딩
+                child: Image.asset(
+                  'assets/homeImage.png', // 이미지 파일 이름
+                  width: double.infinity,
+                  height: 400, // 이미지 높이 설정
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/rankMembers',
-                  arguments: mclubNo,
-                );
-              },
-              child: Text('직책별 회원 리스트'),
+          ),
+          Spacer(),
+          // 버튼 배치
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/clubList', arguments: mclubNo);
+                        },
+                        child: Text('클럽별 회원 리스트'),
+                      ),
+                    ),
+                    SizedBox(width: 8), // 버튼 사이 간격
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/rankMembers', arguments: mclubNo);
+                        },
+                        child: Text('직책별 회원 리스트'),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16), // 버튼 사이 간격
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/search', arguments: mclubNo);
+                        },
+                        child: Text('키워드 회원 검색'),
+                      ),
+                    ),
+                    SizedBox(width: 8), // 버튼 사이 간격
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (mclubNo != null) {
+                            Navigator.pushNamed(context, '/clubDocs', arguments: mclubNo);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
+                            );
+                            Future.delayed(Duration(seconds: 2), () {
+                              Navigator.pushReplacementNamed(context, '/login');
+                            });
+                          }
+                        },
+                        child: Text('클럽 문서 목록'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/search', arguments: mclubNo);
-              },
-              child: Text('키워드 회원 검색'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (mclubNo != null) {
-                  Navigator.pushNamed(
-                    context,
-                    '/clubDocs',
-                    arguments: mclubNo, // 클럽 번호 전달
-                  );
-                } else {
-                  // 클럽 번호가 없을 경우 경고 메시지와 로그인 화면으로 리다이렉트
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                  );
-
-                  // 2초 후 로그인 화면으로 이동
-                  Future.delayed(Duration(seconds: 2), () {
-                    Navigator.pushReplacementNamed(context, '/login');
-                  });
-                }
-              },
-              child: Text('클럽 문서 목록'),
-            ),
-          ],
-        ),
+          ),
+          Spacer(),
+        ],
       ),
     );
   }
