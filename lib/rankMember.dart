@@ -9,12 +9,14 @@ class Member {
   final String memberName;
   final String memberPhone;
   final String rankTitle;
+  final String clubName;
 
   Member({
     required this.memberNo,
     required this.memberName,
     required this.memberPhone,
     required this.rankTitle,
+    required this.clubName,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Member {
       memberName: json['memberName'],
       memberPhone: json['memberPhone'] ?? '',
       rankTitle: json['rankTitle'] ?? '',
+      clubName: json['clubName'] ?? '',
     );
   }
 }
@@ -57,11 +60,11 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
       Map<String, dynamic> data = json.decode(decodedResponse);
       List<dynamic> members = data['members'];
       List<Member> memberList =
-          members.map((json) => Member.fromJson(json)).toList();
+      members.map((json) => Member.fromJson(json)).toList();
 
       // 직책 목록 추출
       final rankTitles =
-          memberList.map((member) => member.rankTitle).toSet().toList();
+      memberList.map((member) => member.rankTitle).toSet().toList();
 
       setState(() {
         _allMembers = memberList; // 전체 멤버 리스트 저장
@@ -88,7 +91,7 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
   @override
   Widget build(BuildContext context) {
     final String? mclubNo =
-        ModalRoute.of(context)?.settings.arguments as String?;
+    ModalRoute.of(context)?.settings.arguments as String?;
     print('RankmemberScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('직책별 회원 리스트')),
@@ -101,9 +104,9 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
             child: DropdownButtonFormField<String>(
               value: _selectedRank,
               items:
-                  _rankTitles.map((rank) {
-                    return DropdownMenuItem(value: rank, child: Text(rank));
-                  }).toList(),
+              _rankTitles.map((rank) {
+                return DropdownMenuItem(value: rank, child: Text(rank));
+              }).toList(),
               onChanged: (value) {
                 if (value != null) {
                   _filterMembersByRank(value);
@@ -160,7 +163,19 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                               ),
                             ),
                           ),
-                          title: Text(member.memberName),
+                          title: Row(
+                            children: [
+                              Text(member.memberName),
+                              SizedBox(width: 8),
+                              Text(
+                                '(${member.clubName})',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -174,12 +189,11 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder:
-                                    (context) => MemberDetailScreen(
-                                      memberNo: member.memberNo,
-                                      memberName: member.memberName,
-                                      mclubNo: mclubNo,
-                                    ),
+                                builder: (context) => MemberDetailScreen(
+                                  memberNo: member.memberNo,
+                                  memberName: member.memberName,
+                                  mclubNo: mclubNo,
+                                ),
                               ),
                             );
                           },

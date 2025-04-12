@@ -162,7 +162,7 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8), // 테두리에 둥글기 추가
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.5),
+                    color: Colors.grey.withAlpha((0.5 * 255).toInt()),
                     spreadRadius: 2,
                     blurRadius: 5,
                     offset: Offset(0, 3), // 그림자 위치
@@ -194,7 +194,7 @@ class HomeScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.pushNamed(context, '/clubList', arguments: mclubNo);
                         },
-                        child: Text('클럽별 회원 리스트'),
+                        child: Text('클럽별 회원 목록'),
                       ),
                     ),
                     SizedBox(width: 8), // 버튼 사이 간격
@@ -203,7 +203,7 @@ class HomeScreen extends StatelessWidget {
                         onPressed: () {
                           Navigator.pushNamed(context, '/rankMembers', arguments: mclubNo);
                         },
-                        child: Text('직책별 회원 리스트'),
+                        child: Text('직책별 회원 목록'),
                       ),
                     ),
                   ],
