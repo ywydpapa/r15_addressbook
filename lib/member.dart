@@ -79,7 +79,7 @@ class Memberdtl {
       addMemo: json['addMemo'] ?? '',
       memberBirth: json['memberBirth'] ?? '',
       clubName: json['clubName'] ?? '소속클럽 없음',
-      clubNo: json['clubNo'] != null ? json['clubNo'].toString() : null,
+      clubNo: json['clubNo']?.toString(),
       nameCard: json['nameCard'],
       spousePhoto: json['spousePhoto'],
       spouseName: json['spouseName'],
