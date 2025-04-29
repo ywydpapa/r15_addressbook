@@ -7,7 +7,7 @@ import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
 import 'config/api_config.dart';
-import 'clubLogo.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
