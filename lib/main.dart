@@ -7,6 +7,7 @@ import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
 import 'config/api_config.dart';
+import 'clubLogo.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Navigation Example',
+      title: 'Lions Club AddressBook for 355-A R15',
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/login', // 초기 화면을 로그인 화면으로 설정
       routes: {

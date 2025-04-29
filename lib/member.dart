@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Memberdtl {
   final int? memberNo;
@@ -146,7 +147,28 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     }
   }
 
-  TableRow _buildTableRow(String label, String value) {
+  TableRow _buildTableRow(String label, String value, {bool isPhone = false}) {
+    Widget valueWidget = Text(
+      value,
+      style: TextStyle(fontSize: 12, color: isPhone ? Colors.blue : Colors.black),
+    );
+
+    if (isPhone && value != '정보 없음') {
+      valueWidget = InkWell(
+        onTap: () async {
+          final Uri phoneUri = Uri(scheme: 'tel', path: value.replaceAll('-', ''));
+          if (await canLaunchUrl(phoneUri)) {
+            await launchUrl(phoneUri);
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('전화를 걸 수 없습니다.')),
+            );
+          }
+        },
+        child: valueWidget,
+      );
+    }
+
     return TableRow(
       children: [
         Padding(
@@ -155,7 +177,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Text(value, style: TextStyle(fontSize: 12)),
+          child: valueWidget,
         ),
       ],
     );
@@ -240,7 +262,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               _buildTableRow('회원성명', member.memberName),
               _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
               _buildTableRow('직책', member.rankTitle),
-              _buildTableRow('연락처', member.memberPhone),
+              _buildTableRow('연락처', member.memberPhone, isPhone: true),
               _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
               _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
               _buildTableRow('추가 기재 사항', member.addMemo ?? '없음'),

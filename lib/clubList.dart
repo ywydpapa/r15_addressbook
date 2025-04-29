@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'cmemberList.dart';
+import 'clubLogo.dart';
 import 'config/api_config.dart';
 
 void main() {
@@ -97,7 +97,7 @@ class _ClubListScreenState extends State<ClubListScreen> {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => MemberListScreen(
+                              (context) => LoadingScreen(
                                 clubNo: club.clubNo,
                                 clubName: club.clubName,
                                 mclubNo: mclubNo,
