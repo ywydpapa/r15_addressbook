@@ -39,12 +39,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    double screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
+    double screenWidth = MediaQuery.of(context).size.width;
     double logoSize = screenWidth * 0.8;
     String logoUrl = '${ApiConf.baseUrl}/thumbnails/${widget.clubNo}logo.png';
+
     return Scaffold(
       backgroundColor: Colors.yellow,
       body: Center(
@@ -56,8 +54,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
               width: logoSize,
               height: logoSize,
               errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.image_not_supported, size: logoSize,
-                    color: Colors.grey);
+                // 네트워크 이미지가 없을 때 assets/default.png로 대체
+                return Image.asset(
+                  'assets/default.png',
+                  width: logoSize,
+                  height: logoSize,
+                  fit: BoxFit.contain,
+                );
               },
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
@@ -67,6 +70,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
                   child: Center(child: CircularProgressIndicator()),
                 );
               },
+              fit: BoxFit.contain,
             ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(color: Colors.black),
