@@ -7,11 +7,22 @@ import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
 import 'config/api_config.dart';
+import 'dart:io';
 
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = MyHttpOverrides(); //테스트용 우회 설정
   runApp(MyApp());
+}
+
+// 테스트용 우회설정 클래스
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+  }
 }
 
 class MyApp extends StatelessWidget {

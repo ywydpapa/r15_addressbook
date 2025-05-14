@@ -1,3 +1,3 @@
 class ApiConf {
-  static const String baseUrl = 'http://swc2004.iptime.org:8000';
+  static const String baseUrl = 'https://swc2004.iptime.org:8000';
 }
