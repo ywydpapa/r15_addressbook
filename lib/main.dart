@@ -6,6 +6,7 @@ import 'searchresult.dart';
 import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
+import 'settings.dart';
 import 'config/api_config.dart';
 import 'dart:io';
 
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
         '/rankMembers': (context) => RankMemberScreen(),
         '/clubDocs': (context) => ClubDocsScreen(),
         '/docViewer': (context) => DocViewerScreen(),
+        '/settings': (context) => SettingScreen(),
       },
     );
   }
@@ -58,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
   String _clubNo = '';
+  String _memberNo = '';
 
   Future<void> _login() async {
     final phoneno = _usernameController.text;
@@ -84,11 +87,12 @@ class _LoginScreenState extends State<LoginScreen> {
         if (data.containsKey('clubno')) {
           setState(() {
             _clubNo = data['clubno'].toString();
+            _memberNo = data['memberno'].toString();
             _errorMessage = '';
           });
 
           // 메인 화면으로 이동
-          Navigator.pushReplacementNamed(context, '/', arguments: _clubNo);
+          Navigator.pushReplacementNamed(context,'/',arguments: {'clubNo': _clubNo,'memberNo': _memberNo,},);
         } else if (data.containsKey('error')) {
           setState(() {
             _errorMessage = data['error'];
@@ -154,12 +158,22 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo =
-    ModalRoute.of(context)?.settings.arguments as String?;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final String? mclubNo = args?['clubNo'];
+    final String? memberNo = args?['memberNo'];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
         title: Text('15지역 회원 주소록'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings), // 기어 아이콘
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings', arguments: memberNo,);
+            },
+          ),
+        ],
       ),
       backgroundColor: Colors.yellow,
       body: Column(
