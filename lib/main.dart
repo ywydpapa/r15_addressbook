@@ -7,6 +7,8 @@ import 'rankMember.dart';
 import 'clubDocs.dart';
 import 'docViewer.dart';
 import 'settings.dart';
+import 'request.dart';
+import 'notice.dart';
 import 'config/api_config.dart';
 import 'dart:io';
 
@@ -43,7 +45,9 @@ class MyApp extends StatelessWidget {
         '/rankMembers': (context) => RankMemberScreen(),
         '/clubDocs': (context) => ClubDocsScreen(),
         '/docViewer': (context) => DocViewerScreen(),
-        '/settings': (context) => SettingScreen(),
+        '/request': (context) => RequestScreen(),
+        '/setting': (context) => SettingScreen(),
+        '/notice': (context) => NoticeScreen(),
       },
     );
   }
@@ -168,9 +172,9 @@ class HomeScreen extends StatelessWidget {
         title: Text('15지역 회원 주소록'),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings), // 기어 아이콘
+            icon: Icon(Icons.add_circle), // 기어 아이콘
             onPressed: () {
-              Navigator.pushNamed(context, '/settings', arguments: memberNo,);
+              Navigator.pushNamed(context, '/request', arguments: memberNo,);
             },
           ),
         ],
@@ -261,6 +265,37 @@ class HomeScreen extends StatelessWidget {
                           }
                         },
                         child: Text('클럽 문서 목록'),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16), // 버튼 사이 간격
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/notice', arguments: mclubNo);
+                        },
+                        child: Text('공지사항'),
+                      ),
+                    ),
+                    SizedBox(width: 8), // 버튼 사이 간격
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (mclubNo != null) {
+                            Navigator.pushNamed(context, '/setting', arguments: mclubNo);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
+                            );
+                            Future.delayed(Duration(seconds: 2), () {
+                              Navigator.pushReplacementNamed(context, '/login');
+                            });
+                          }
+                        },
+                        child: Text('설정'),
                       ),
                     ),
                   ],

@@ -3,14 +3,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
 
-class SettingScreen extends StatefulWidget {
-  const SettingScreen({super.key});
+class RequestScreen extends StatefulWidget {
+  const RequestScreen({super.key});
 
   @override
-  State<SettingScreen> createState() => _SettingScreenState();
+  State<RequestScreen> createState() => _RequestScreenState();
 }
 
-class _SettingScreenState extends State<SettingScreen> {
+class _RequestScreenState extends State<RequestScreen> {
   final TextEditingController _textController = TextEditingController();
   bool _isLoading = false;
 
@@ -57,7 +57,7 @@ class _SettingScreenState extends State<SettingScreen> {
     final memberNo = ModalRoute.of(context)?.settings.arguments as String? ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: Text('설정관리'),
+        title: Text('데이터 수정요청'),
         backgroundColor: Colors.yellow,
       ),
       backgroundColor: Colors.yellow,
