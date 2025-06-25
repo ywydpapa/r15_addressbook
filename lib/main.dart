@@ -9,6 +9,7 @@ import 'docViewer.dart';
 import 'settings.dart';
 import 'request.dart';
 import 'notice.dart';
+import 'noticeViewer.dart';
 import 'config/api_config.dart';
 import 'dart:io';
 
@@ -45,6 +46,7 @@ class MyApp extends StatelessWidget {
         '/rankMembers': (context) => RankMemberScreen(),
         '/clubDocs': (context) => ClubDocsScreen(),
         '/docViewer': (context) => DocViewerScreen(),
+        '/noticeViewer': (context) => NoticeViewerScreen(),
         '/request': (context) => RequestScreen(),
         '/setting': (context) => SettingScreen(),
         '/notice': (context) => NoticeScreen(),
@@ -172,7 +174,7 @@ class HomeScreen extends StatelessWidget {
         title: Text('15지역 회원 주소록'),
         actions: [
           IconButton(
-            icon: Icon(Icons.add_circle), // 기어 아이콘
+            icon: Icon(Icons.assignment_add), // 기어 아이콘
             onPressed: () {
               Navigator.pushNamed(context, '/request', arguments: memberNo,);
             },
@@ -210,10 +212,10 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          Spacer(),
+          SizedBox(height: 24),
           // 버튼 배치
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -238,7 +240,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 16), // 버튼 사이 간격
+                SizedBox(height: 10), // 버튼 사이 간격
                 Row(
                   children: [
                     Expanded(
@@ -269,7 +271,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                SizedBox(height: 16), // 버튼 사이 간격
+                SizedBox(height: 10), // 버튼 사이 간격
                 Row(
                   children: [
                     Expanded(
@@ -285,7 +287,7 @@ class HomeScreen extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           if (mclubNo != null) {
-                            Navigator.pushNamed(context, '/setting', arguments: mclubNo);
+                            Navigator.pushNamed(context,'/setting',arguments: {'clubNo': mclubNo,'memberNo': memberNo,},);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),

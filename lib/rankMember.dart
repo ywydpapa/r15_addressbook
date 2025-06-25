@@ -52,7 +52,7 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
 
   Future<List<Member>> fetchMemberList() async {
     final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/rmemberList/'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/15'),
     );
 
     if (response.statusCode == 200) {

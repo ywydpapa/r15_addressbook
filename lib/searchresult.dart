@@ -54,7 +54,7 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/searchmember/$keyword'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/rsearchmember/15/$keyword'),
       );
 
       if (response.statusCode == 200) {

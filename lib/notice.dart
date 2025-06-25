@@ -1,117 +1,84 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'config/api_config.dart';
+import 'noticeViewer.dart';
 
-class NoticeScreen extends StatefulWidget {
+class NoticeScreen extends StatelessWidget {
   const NoticeScreen({super.key});
 
   @override
-  State<NoticeScreen> createState() => _NoticeScreenState();
-}
-
-class _NoticeScreenState extends State<NoticeScreen> {
-  final TextEditingController _textController = TextEditingController();
-  bool _isLoading = false;
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    return Scaffold(
+      appBar: AppBar(backgroundColor: Colors.yellow, title: Text('공지사항목록')),
+      backgroundColor: Colors.yellow,
+      body:
+      mclubNo != null
+          ? FutureBuilder<List<Map<String, dynamic>>>(
+        future: fetchClubDocs(mclubNo),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text('문서를 불러오는 중 오류가 발생했습니다: ${snapshot.error}'),
+            );
+          } else if (snapshot.hasData) {
+            final docs = snapshot.data!;
+            if (docs.isEmpty) {
+              return Center(child: Text('문서가 없습니다.'));
+            }
+            return ListView.builder(
+              itemCount: docs.length,
+              itemBuilder: (context, index) {
+                final doc = docs[index];
+                return Card(
+                  margin: EdgeInsets.all(8.0),
+                  child: ListTile(
+                    title: Text(doc['noticeTitle'] ?? '제목 없음'),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/noticeViewer',
+                        arguments: doc['noticeNo'], // 문서 번호 전달
+                      );
+                    },
+                  ),
+                );
+              },
+            );
+          } else {
+            return Center(child: Text('문서를 불러오는 중 문제가 발생했습니다.'));
+          }
+        },
+      )
+          : Center(child: Text('클럽 번호가 없습니다.')),
+    );
   }
 
-  Future<void> _submitRequest(String memberNo) async {
-    final message = _textController.text.trim();
-    if (message.isEmpty) return;
-
-    setState(() => _isLoading = true);
-
+  Future<List<Map<String, dynamic>>> fetchClubDocs(String mclubNo) async {
     try {
-      final response = await http.post(
-        Uri.parse('${ApiConf.baseUrl}/phapp/requestmessage'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'memberNo': memberNo, 'message': message}),
+      // API 호출
+      final response = await http.get(
+        Uri.parse('${ApiConf.baseUrl}/phapp/notice/15'),
       );
 
       if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('요청이 접수되었습니다!')),
-        );
-        _textController.clear();
+        // UTF-8 디코딩을 통해 한글 처리
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final data = json.decode(decodedBody);
+        if (data['docs'] != null && data['docs'] is List) {
+          return List<Map<String, dynamic>>.from(data['docs']);
+        } else {
+          throw Exception('Invalid response format');
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('요청 실패: ${response.body}')),
-        );
+        throw Exception('Failed to load documents: ${response.statusCode}');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('네트워크 오류: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
+      print('Error fetching club docs: $e');
+      throw Exception('문서를 불러오는 중 오류가 발생했습니다.');
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final memberNo = ModalRoute.of(context)?.settings.arguments as String? ?? '';
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('공지사항'),
-        backgroundColor: Colors.yellow,
-      ),
-      backgroundColor: Colors.yellow,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              '수정 요청할 내용을 아래에 입력해 주세요.',
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _textController,
-                maxLines: null,
-                expands: true,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: '예시: 홍길동 회원의 전화번호가 변경되었습니다...',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                style: TextStyle(fontSize: 16),
-                maxLength: 500,
-              ),
-            ),
-            SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: (_isLoading || memberNo.isEmpty)
-                    ? null
-                    : () => _submitRequest(memberNo),
-                child: _isLoading
-                    ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-                    : Text('요청 제출'),
-              ),
-            ),
-            if (memberNo.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  '사용자번호가 없습니다. 로그인을 확인해 주세요.',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
