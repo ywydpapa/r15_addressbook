@@ -41,19 +41,32 @@ class ClubListScreen extends StatefulWidget {
 }
 
 class _ClubListScreenState extends State<ClubListScreen> {
-  late Future<List<Club>> _clubList;
+  Future<List<Club>>? _clubList;
+  int? mregionNo;
+  String? mclubNo;
 
   @override
-  void initState() {
-    super.initState();
-    _clubList = fetchClubList();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      final regionArg = args['mregionNo'];
+      if (regionArg is int) {
+        mregionNo = regionArg;
+      } else if (regionArg is String) {
+        mregionNo = int.tryParse(regionArg);
+      }
+      mclubNo = args['mclubNo']?.toString();
+      if (_clubList == null && mregionNo != null) {
+        _clubList = fetchClubList(mregionNo!);
+      }
+    }
   }
 
-  Future<List<Club>> fetchClubList() async {
+  Future<List<Club>> fetchClubList(int mregionNo) async {
     final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/clubList/15'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/clubList/$mregionNo'),
     );
-
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
@@ -66,13 +79,13 @@ class _ClubListScreenState extends State<ClubListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo =
-        ModalRoute.of(context)?.settings.arguments as String?;
-    print('ClubListScreen - mclubNo: $mclubNo'); // 디버깅용 출력
+    print('ClubListScreen - mclubNo: $mclubNo  mregionNo: $mregionNo');
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('클럽 리스트')),
       backgroundColor: Colors.yellow,
-      body: FutureBuilder<List<Club>>(
+      body: _clubList == null
+          ? Center(child: Text('No region selected'))
+          : FutureBuilder<List<Club>>(
         future: _clubList,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -92,16 +105,14 @@ class _ClubListScreenState extends State<ClubListScreen> {
                     leading: CircleAvatar(child: Text(club.clubNo.toString())),
                     title: Text(club.clubName),
                     onTap: () {
-                      // 리스트 항목 클릭 시 memberList.dart 화면으로 이동
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (context) => LoadingScreen(
-                                clubNo: club.clubNo,
-                                clubName: club.clubName,
-                                mclubNo: mclubNo,
-                              ),
+                          builder: (context) => LoadingScreen(
+                            clubNo: club.clubNo,
+                            clubName: club.clubName,
+                            mclubNo: mclubNo,
+                          ),
                         ),
                       );
                     },

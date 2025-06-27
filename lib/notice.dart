@@ -5,18 +5,31 @@ import 'config/api_config.dart';
 import 'noticeViewer.dart';
 
 class NoticeScreen extends StatelessWidget {
-  const NoticeScreen({super.key});
+  const NoticeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo = ModalRoute.of(context)?.settings.arguments as String?;
+    // arguments를 안전하게 파싱
+    final args = ModalRoute.of(context)?.settings.arguments;
+    int? mregionNo;
+    String? mclubNo;
+
+    if (args is Map<String, dynamic>) {
+      final dynamic regionValue = args['mregionNo'];
+      if (regionValue is int) {
+        mregionNo = regionValue;
+      } else if (regionValue is String) {
+        mregionNo = int.tryParse(regionValue);
+      }
+      mclubNo = args['mclubNo']?.toString();
+    }
+
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('공지사항목록')),
       backgroundColor: Colors.yellow,
-      body:
-      mclubNo != null
+      body: (mregionNo != null && mclubNo != null)
           ? FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchClubDocs(mclubNo),
+        future: fetchClubDocs(mregionNo, mclubNo),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -41,7 +54,7 @@ class NoticeScreen extends StatelessWidget {
                       Navigator.pushNamed(
                         context,
                         '/noticeViewer',
-                        arguments: doc['noticeNo'], // 문서 번호 전달
+                        arguments: doc['noticeNo'],
                       );
                     },
                   ),
@@ -53,19 +66,17 @@ class NoticeScreen extends StatelessWidget {
           }
         },
       )
-          : Center(child: Text('클럽 번호가 없습니다.')),
+          : Center(child: Text('지역 번호 또는 클럽 번호가 없습니다.')),
     );
   }
 
-  Future<List<Map<String, dynamic>>> fetchClubDocs(String mclubNo) async {
+  Future<List<Map<String, dynamic>>> fetchClubDocs(int mregionNo, String mclubNo) async {
     try {
-      // API 호출
       final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/notice/15'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/notice/$mregionNo'),
       );
 
       if (response.statusCode == 200) {
-        // UTF-8 디코딩을 통해 한글 처리
         final decodedBody = utf8.decode(response.bodyBytes);
         final data = json.decode(decodedBody);
         if (data['docs'] != null && data['docs'] is List) {
@@ -77,7 +88,6 @@ class NoticeScreen extends StatelessWidget {
         throw Exception('Failed to load documents: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching club docs: $e');
       throw Exception('문서를 불러오는 중 오류가 발생했습니다.');
     }
   }

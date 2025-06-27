@@ -43,16 +43,31 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
   List<Member> _filteredMembers = []; // 필터링된 멤버 리스트
   String? _selectedRank; // 선택된 직책
   List<String> _rankTitles = []; // 직책 목록
+  int? mregionNo;
+  String? mclubNo;
 
   @override
-  void initState() {
-    super.initState();
-    _memberList = fetchMemberList();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      // regionNo를 int로 변환
+      final regionArg = args['mregionNo'];
+      if (regionArg is int) {
+        mregionNo = regionArg;
+      } else if (regionArg is String) {
+        mregionNo = int.tryParse(regionArg);
+      }
+      mclubNo = args['mclubNo']?.toString();
+      if (mregionNo != null) {
+        _memberList = fetchMemberList(mregionNo!);
+      }
+    }
   }
 
-  Future<List<Member>> fetchMemberList() async {
+  Future<List<Member>> fetchMemberList(int mregionNo) async {
     final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/15'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/$mregionNo'),
     );
 
     if (response.statusCode == 200) {
@@ -90,9 +105,6 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo =
-    ModalRoute.of(context)?.settings.arguments as String?;
-    print('RankmemberScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('직책별 회원 리스트')),
       backgroundColor: Colors.yellow,

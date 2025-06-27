@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'member.dart';
 import 'config/api_config.dart';
 
+// Member 모델은 그대로 두세요
 class Member {
   final int memberNo;
   final String memberName;
@@ -30,8 +31,9 @@ class Member {
   }
 }
 
+// StatefulWidget으로 선언
 class MemberSearchScreen extends StatefulWidget {
-  const MemberSearchScreen({super.key});
+  const MemberSearchScreen({Key? key}) : super(key: key);
 
   @override
   _MemberSearchScreenState createState() => _MemberSearchScreenState();
@@ -41,6 +43,23 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _errorMessage = '';
   List<Member> _searchResults = [];
+  int? mregionNo;
+  String? mclubNo;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      final regionArg = args['mregionNo'];
+      if (regionArg is int) {
+        mregionNo = regionArg;
+      } else if (regionArg is String) {
+        mregionNo = int.tryParse(regionArg);
+      }
+      mclubNo = args['mclubNo']?.toString();
+    }
+  }
 
   Future<void> _searchMembers() async {
     final keyword = _searchController.text;
@@ -52,9 +71,16 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
       return;
     }
 
+    if (mregionNo == null) {
+      setState(() {
+        _errorMessage = '지역 정보가 없습니다.';
+      });
+      return;
+    }
+
     try {
       final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/rsearchmember/15/$keyword'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/rsearchmember/$mregionNo/$keyword'),
       );
 
       if (response.statusCode == 200) {
@@ -88,9 +114,6 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final String? mclubNo =
-    ModalRoute.of(context)?.settings.arguments as String?;
-    print('SearchScreen - mclubNo: $mclubNo'); // 디버깅용 출력
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('회원 검색')),
       backgroundColor: Colors.yellow,

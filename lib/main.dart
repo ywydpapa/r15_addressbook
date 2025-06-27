@@ -67,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
   String _clubNo = '';
   String _memberNo = '';
+  String _mregionNo = '';
 
   Future<void> _login() async {
     final phoneno = _usernameController.text;
@@ -81,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       // 서버 요청
       final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/mlogin/$phoneno'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/zlogin/$phoneno'),
       );
 
       // 상태 코드 확인
@@ -94,11 +95,12 @@ class _LoginScreenState extends State<LoginScreen> {
           setState(() {
             _clubNo = data['clubno'].toString();
             _memberNo = data['memberno'].toString();
+            _mregionNo = data['regionno'].toString();
             _errorMessage = '';
           });
 
           // 메인 화면으로 이동
-          Navigator.pushReplacementNamed(context,'/',arguments: {'clubNo': _clubNo,'memberNo': _memberNo,},);
+          Navigator.pushReplacementNamed(context,'/',arguments: {'clubNo': _clubNo,'memberNo': _memberNo, 'regionNo':_mregionNo,},);
         } else if (data.containsKey('error')) {
           setState(() {
             _errorMessage = data['error'];
@@ -125,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
-        title: Text('국제라이온스협회 355-A지구 15지역'),
+        title: Text('국제라이온스협회 355-A지구 지역주소록'),
       ),
       backgroundColor: Colors.yellow,
       body: Padding(
@@ -167,11 +169,16 @@ class HomeScreen extends StatelessWidget {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final String? mclubNo = args?['clubNo'];
     final String? memberNo = args?['memberNo'];
+    final String? mregionNo = args?['regionNo'];
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
-        title: Text('15지역 회원 주소록'),
+        title: Text(
+          (mregionNo != null && mregionNo.isNotEmpty)
+              ? '$mregionNo 지역 회원 주소록'
+              : '지역주소록 로그인 만료', // mregionNo가 없을 때 표시할 텍스트
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.assignment_add), // 기어 아이콘
@@ -204,9 +211,11 @@ class HomeScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(8.0), // 이미지와 테두리 사이 패딩
                 child: Image.asset(
-                  'assets/homeImage.png', // 이미지 파일 이름
+                  (mregionNo != null && mregionNo.isNotEmpty)
+                      ? 'assets/homeImage$mregionNo.jpg'
+                      : 'assets/loginlogo.png',
                   width: double.infinity,
-                  height: 400, // 이미지 높이 설정
+                  height: 400,
                   fit: BoxFit.cover,
                 ),
               ),
@@ -224,7 +233,10 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/clubList', arguments: mclubNo);
+                          Navigator.pushNamed(context, '/clubList', arguments: {
+                            'mregionNo': mregionNo,
+                            'mclubNo': mclubNo,
+                          },);
                         },
                         child: Text('클럽별 회원 목록'),
                       ),
@@ -233,7 +245,10 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/rankMembers', arguments: mclubNo);
+                          Navigator.pushNamed(context, '/rankMembers', arguments: {
+                            'mregionNo': mregionNo,
+                            'mclubNo': mclubNo,
+                          },);
                         },
                         child: Text('직책별 회원 목록'),
                       ),
@@ -246,7 +261,7 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/search', arguments: mclubNo);
+                          Navigator.pushNamed(context, '/search', arguments: {'mregionNo': mregionNo,'mclubNo': mclubNo,},);
                         },
                         child: Text('키워드 회원 검색'),
                       ),
@@ -277,7 +292,7 @@ class HomeScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, '/notice', arguments: mclubNo);
+                          Navigator.pushNamed(context, '/notice', arguments: {'mregionNo': mregionNo,'mclubNo': mclubNo,},);
                         },
                         child: Text('공지사항'),
                       ),
