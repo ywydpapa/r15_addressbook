@@ -79,7 +79,7 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
       body:
           isLoading
               ? const Center(child: CircularProgressIndicator()) // 로딩 중 표시
-              : SingleChildScrollView(
+              : InteractiveViewer(
                 child: Html(
                   anchorKey: staticAnchorKey,
                   data: htmlData,

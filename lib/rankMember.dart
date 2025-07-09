@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'member.dart';
+import 'member.dart'; // 필요시 주석 해제
 import 'config/api_config.dart';
 
+// Member 모델 정의
 class Member {
   final int memberNo;
   final String memberName;
@@ -20,16 +21,20 @@ class Member {
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
+    // 빈 문자열 직책은 '미지정'으로 치환
+    String rank = (json['rankTitle'] ?? '').toString().trim();
+    if (rank.isEmpty) rank = '미지정';
     return Member(
       memberNo: json['memberNo'],
       memberName: json['memberName'],
       memberPhone: json['memberPhone'] ?? '',
-      rankTitle: json['rankTitle'] ?? '',
+      rankTitle: rank,
       clubName: json['clubName'] ?? '',
     );
   }
 }
 
+// 메인 화면
 class RankMemberScreen extends StatefulWidget {
   const RankMemberScreen({super.key});
 
@@ -38,20 +43,20 @@ class RankMemberScreen extends StatefulWidget {
 }
 
 class _RankMemberScreenState extends State<RankMemberScreen> {
-  late Future<List<Member>> _memberList;
-  List<Member> _allMembers = []; // 전체 멤버 리스트
-  List<Member> _filteredMembers = []; // 필터링된 멤버 리스트
-  String? _selectedRank; // 선택된 직책
-  List<String> _rankTitles = []; // 직책 목록
+  List<Member> _allMembers = [];
+  List<Member> _filteredMembers = [];
+  String _selectedRank = '전체';
+  List<String> _rankTitles = [];
   int? mregionNo;
   String? mclubNo;
+  bool _isLoading = true;
+  String? _errorMsg;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
-      // regionNo를 int로 변환
       final regionArg = args['mregionNo'];
       if (regionArg is int) {
         mregionNo = regionArg;
@@ -60,51 +65,83 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
       }
       mclubNo = args['mclubNo']?.toString();
       if (mregionNo != null) {
-        _memberList = fetchMemberList(mregionNo!);
+        _fetchMemberList(mregionNo!);
       }
     }
   }
 
-  Future<List<Member>> fetchMemberList(int mregionNo) async {
-    final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/$mregionNo'),
-    );
+  Future<void> _fetchMemberList(int mregionNo) async {
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
+    });
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/$mregionNo'),
+      );
 
-    if (response.statusCode == 200) {
-      final decodedResponse = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> data = json.decode(decodedResponse);
-      List<dynamic> members = data['members'];
-      List<Member> memberList =
-      members.map((json) => Member.fromJson(json)).toList();
+      if (response.statusCode == 200) {
+        final decodedResponse = utf8.decode(response.bodyBytes);
+        Map<String, dynamic> data = json.decode(decodedResponse);
+        List<dynamic> members = data['members'];
+        List<Member> memberList =
+        members.map((json) => Member.fromJson(json)).toList();
 
-      // 직책 목록 추출
-      final rankTitles =
-      memberList.map((member) => member.rankTitle).toSet().toList();
+        final rankTitles = memberList
+            .map((member) => member.rankTitle)
+            .toSet()
+            .toList()
+          ..sort();
 
+        setState(() {
+          _allMembers = memberList;
+          // 여기서 _filteredMembers를 _selectedRank에 따라 할당
+          if (_selectedRank == '전체') {
+            _filteredMembers = memberList;
+          } else {
+            _filteredMembers = memberList.where((m) => m.rankTitle == _selectedRank).toList();
+          }
+          _rankTitles = rankTitles;
+          if (!_rankTitles.contains(_selectedRank) && _selectedRank != '전체') {
+            _selectedRank = '전체';
+          }
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMsg = 'Failed to load member list';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _allMembers = memberList; // 전체 멤버 리스트 저장
-        _filteredMembers = memberList; // 초기에는 전체 멤버를 표시
-        _rankTitles = rankTitles..sort(); // 직책 목록 정렬
+        _errorMsg = 'Error: $e';
+        _isLoading = false;
       });
-
-      return memberList;
-    } else {
-      throw Exception('Failed to load member list');
     }
   }
 
+
   void _filterMembersByRank(String rankTitle) {
     setState(() {
-      _selectedRank = rankTitle; // 선택된 직책 저장
-      _filteredMembers =
-          _allMembers.where((member) {
-            return member.rankTitle == rankTitle;
-          }).toList();
+      _selectedRank = rankTitle;
+      if (rankTitle == '전체') {
+        _filteredMembers = _allMembers;
+      } else {
+        _filteredMembers = _allMembers.where((member) => member.rankTitle == rankTitle).toList();
+      }
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
+    // value가 items에 없으면 강제로 '전체'로 맞춤
+    final dropdownItems = ['전체', ..._rankTitles];
+    if (!dropdownItems.contains(_selectedRank)) {
+      _selectedRank = '전체';
+    }
+
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('직책별 회원 리스트')),
       backgroundColor: Colors.yellow,
@@ -115,10 +152,9 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
             padding: const EdgeInsets.all(8.0),
             child: DropdownButtonFormField<String>(
               value: _selectedRank,
-              items:
-              _rankTitles.map((rank) {
-                return DropdownMenuItem(value: rank, child: Text(rank));
-              }).toList(),
+              items: dropdownItems
+                  .map((rank) => DropdownMenuItem(value: rank, child: Text(rank)))
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   _filterMembersByRank(value);
@@ -134,86 +170,80 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
           ),
           // 멤버 리스트
           Expanded(
-            child: FutureBuilder<List<Member>>(
-              future: _memberList,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No members found'));
-                } else {
-                  return ListView.builder(
-                    itemCount: _filteredMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = _filteredMembers[index];
-                      final imageUrl =
-                          '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : _errorMsg != null
+                ? Center(child: Text(_errorMsg!))
+                : _filteredMembers.isEmpty
+                ? Center(child: Text('No members found'))
+                : ListView.builder(
+              itemCount: _filteredMembers.length,
+              itemBuilder: (context, index) {
+                final member = _filteredMembers[index];
+                final imageUrl =
+                    '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
 
-                      return Card(
-                        margin: EdgeInsets.all(8.0),
-                        child: ListTile(
-                          leading: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'assets/default.png',
-                                    fit: BoxFit.cover,
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          title: Row(
-                            children: [
-                              Text(member.memberName),
-                              SizedBox(width: 8),
-                              Text(
-                                '(${member.clubName})',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('직책: ${member.rankTitle}'),
-                              Text(
-                                '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => MemberDetailScreen(
-                                  memberNo: member.memberNo,
-                                  memberName: member.memberName,
-                                  mclubNo: mclubNo,
-                                ),
-                              ),
+                return Card(
+                  margin: EdgeInsets.all(8.0),
+                  child: ListTile(
+                    leading: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey[200],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'assets/default.png',
+                              fit: BoxFit.cover,
                             );
                           },
                         ),
-                      );
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(member.memberName),
+                        SizedBox(width: 8),
+                        Text(
+                          '(${member.clubName})',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('직책: ${member.rankTitle}'),
+                        Text(
+                          '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      // 필요시 상세화면 구현
+                       Navigator.push(
+                         context,
+                         MaterialPageRoute(
+                           builder: (context) => MemberDetailScreen(
+                             memberNo: member.memberNo,
+                             memberName: member.memberName,
+                             mclubNo: mclubNo,
+                           ),
+                         ),
+                       );
                     },
-                  );
-                }
+                  ),
+                );
               },
             ),
           ),
