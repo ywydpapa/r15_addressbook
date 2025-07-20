@@ -99,139 +99,140 @@ class _MemberListScreenState extends State<MemberListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.yellow,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.yellow,
-            pinned: true, // AppBar는 고정, flexibleSpace는 스크롤 시 사라짐
-            expandedHeight: 120.0,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: EdgeInsets.only(left: 16, bottom: 16),
-              title: Text(
-                '${widget.clubName} 회원 리스트',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  shadows: [],
+      body: SafeArea(
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              backgroundColor: Colors.yellow,
+              pinned: true, // AppBar는 고정, flexibleSpace는 스크롤 시 사라짐
+              expandedHeight: 120.0,
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: EdgeInsets.only(left: 16, bottom: 16),
+                title: Text(
+                  '${widget.clubName} 회원 리스트',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    shadows: [],
+                  ),
                 ),
-              ),
-              background: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 슬로건 영역
-                  Container(
-                    width: double.infinity,
-                    color: Colors.yellow[200],
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: Text(
-                      '여기에 클럽 슬로건을 입력하세요!',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                background: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 슬로건 영역
+                    Container(
+                      width: double.infinity,
+                      color: Colors.yellow[200],
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Text(
+                        '여기에 클럽 슬로건을 입력하세요!',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: '검색',
-                  hintText: '이름 또는 전화번호로 검색',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: '검색',
+                    hintText: '이름 또는 전화번호로 검색',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          SliverFillRemaining(
-            child: FutureBuilder<List<Member>>(
-              future: _memberList,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(child: Text('No members found'));
-                } else {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(), // 중첩 스크롤 방지
-                    itemCount: _filteredMembers.length,
-                    itemBuilder: (context, index) {
-                      final member = _filteredMembers[index];
-                      final imageUrl =
-                          '${ApiConf.baseUrl}/thumbnails/${member
-                          .memberNo}.png';
-                      return Card(
-                        margin: EdgeInsets.all(8.0),
-                        child: ListTile(
-                          leading: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey[200],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'assets/default.png',
-                                    fit: BoxFit.cover,
-                                  );
-                                },
+            SliverFillRemaining(
+              child: FutureBuilder<List<Member>>(
+                future: _memberList,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(child: Text('No members found'));
+                  } else {
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(), // 중첩 스크롤 방지
+                      itemCount: _filteredMembers.length,
+                      itemBuilder: (context, index) {
+                        final member = _filteredMembers[index];
+                        final imageUrl =
+                            '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                        return Card(
+                          margin: EdgeInsets.all(8.0),
+                          child: ListTile(
+                            leading: Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                color: Colors.grey[200],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      'assets/default.png',
+                                      fit: BoxFit.cover,
+                                    );
+                                  },
+                                ),
                               ),
                             ),
+                            title: Text(member.memberName),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('직책: ${member.rankTitle}'),
+                                Text(
+                                  '연락처: ${member.memberPhone.isEmpty
+                                      ? "N/A"
+                                      : member.memberPhone}',
+                                ),
+                              ],
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      MemberDetailScreen(
+                                        memberNo: member.memberNo,
+                                        memberName: member.memberName,
+                                        mclubNo: widget.mclubNo,
+                                      ),
+                                ),
+                              );
+                            },
                           ),
-                          title: Text(member.memberName),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('직책: ${member.rankTitle}'),
-                              Text(
-                                '연락처: ${member.memberPhone.isEmpty
-                                    ? "N/A"
-                                    : member.memberPhone}',
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    MemberDetailScreen(
-                                      memberNo: member.memberNo,
-                                      memberName: member.memberName,
-                                      mclubNo: widget.mclubNo,
-                                    ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
-                  );
-                }
-              },
+                        );
+                      },
+                    );
+                  }
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

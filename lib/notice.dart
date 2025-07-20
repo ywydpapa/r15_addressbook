@@ -27,46 +27,48 @@ class NoticeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('공지사항목록')),
       backgroundColor: Colors.yellow,
-      body: (mregionNo != null && mclubNo != null)
-          ? FutureBuilder<List<Map<String, dynamic>>>(
-        future: fetchClubDocs(mregionNo, mclubNo),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text('문서를 불러오는 중 오류가 발생했습니다: ${snapshot.error}'),
-            );
-          } else if (snapshot.hasData) {
-            final docs = snapshot.data!;
-            if (docs.isEmpty) {
-              return Center(child: Text('문서가 없습니다.'));
+      body: SafeArea(
+        child: (mregionNo != null && mclubNo != null)
+            ? FutureBuilder<List<Map<String, dynamic>>>(
+          future: fetchClubDocs(mregionNo, mclubNo),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(
+                child: Text('문서를 불러오는 중 오류가 발생했습니다: ${snapshot.error}'),
+              );
+            } else if (snapshot.hasData) {
+              final docs = snapshot.data!;
+              if (docs.isEmpty) {
+                return Center(child: Text('문서가 없습니다.'));
+              }
+              return ListView.builder(
+                itemCount: docs.length,
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  return Card(
+                    margin: EdgeInsets.all(8.0),
+                    child: ListTile(
+                      title: Text(doc['noticeTitle'] ?? '제목 없음'),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/noticeViewer',
+                          arguments: doc['noticeNo'],
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            } else {
+              return Center(child: Text('문서를 불러오는 중 문제가 발생했습니다.'));
             }
-            return ListView.builder(
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                final doc = docs[index];
-                return Card(
-                  margin: EdgeInsets.all(8.0),
-                  child: ListTile(
-                    title: Text(doc['noticeTitle'] ?? '제목 없음'),
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/noticeViewer',
-                        arguments: doc['noticeNo'],
-                      );
-                    },
-                  ),
-                );
-              },
-            );
-          } else {
-            return Center(child: Text('문서를 불러오는 중 문제가 발생했습니다.'));
-          }
-        },
-      )
-          : Center(child: Text('지역 번호 또는 클럽 번호가 없습니다.')),
+          },
+        )
+            : Center(child: Text('지역 번호 또는 클럽 번호가 없습니다.')),
+      ),
     );
   }
 

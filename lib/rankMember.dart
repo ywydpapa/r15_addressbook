@@ -145,109 +145,111 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
     return Scaffold(
       appBar: AppBar(backgroundColor: Colors.yellow, title: Text('직책별 회원 리스트')),
       backgroundColor: Colors.yellow,
-      body: Column(
-        children: [
-          // 드롭다운 필터
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: DropdownButtonFormField<String>(
-              value: _selectedRank,
-              items: dropdownItems
-                  .map((rank) => DropdownMenuItem(value: rank, child: Text(rank)))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  _filterMembersByRank(value);
-                }
-              },
-              decoration: InputDecoration(
-                labelText: '직책 선택',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 드롭다운 필터
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: DropdownButtonFormField<String>(
+                value: _selectedRank,
+                items: dropdownItems
+                    .map((rank) => DropdownMenuItem(value: rank, child: Text(rank)))
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    _filterMembersByRank(value);
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: '직책 선택',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
                 ),
               ),
             ),
-          ),
-          // 멤버 리스트
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator())
-                : _errorMsg != null
-                ? Center(child: Text(_errorMsg!))
-                : _filteredMembers.isEmpty
-                ? Center(child: Text('No members found'))
-                : ListView.builder(
-              itemCount: _filteredMembers.length,
-              itemBuilder: (context, index) {
-                final member = _filteredMembers[index];
-                final imageUrl =
-                    '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+            // 멤버 리스트
+            Expanded(
+              child: _isLoading
+                  ? Center(child: CircularProgressIndicator())
+                  : _errorMsg != null
+                  ? Center(child: Text(_errorMsg!))
+                  : _filteredMembers.isEmpty
+                  ? Center(child: Text('No members found'))
+                  : ListView.builder(
+                itemCount: _filteredMembers.length,
+                itemBuilder: (context, index) {
+                  final member = _filteredMembers[index];
+                  final imageUrl =
+                      '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
 
-                return Card(
-                  margin: EdgeInsets.all(8.0),
-                  child: ListTile(
-                    leading: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: Colors.grey[200],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              'assets/default.png',
-                              fit: BoxFit.cover,
-                            );
-                          },
+                  return Card(
+                    margin: EdgeInsets.all(8.0),
+                    child: ListTile(
+                      leading: Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.grey[200],
                         ),
-                      ),
-                    ),
-                    title: Row(
-                      children: [
-                        Text(member.memberName),
-                        SizedBox(width: 8),
-                        Text(
-                          '(${member.clubName})',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/default.png',
+                                fit: BoxFit.cover,
+                              );
+                            },
                           ),
                         ),
-                      ],
+                      ),
+                      title: Row(
+                        children: [
+                          Text(member.memberName),
+                          SizedBox(width: 8),
+                          Text(
+                            '(${member.clubName})',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('직책: ${member.rankTitle}'),
+                          Text(
+                            '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        // 필요시 상세화면 구현
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => MemberDetailScreen(
+                              memberNo: member.memberNo,
+                              memberName: member.memberName,
+                              mclubNo: mclubNo,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('직책: ${member.rankTitle}'),
-                        Text(
-                          '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
-                        ),
-                      ],
-                    ),
-                    onTap: () {
-                      // 필요시 상세화면 구현
-                       Navigator.push(
-                         context,
-                         MaterialPageRoute(
-                           builder: (context) => MemberDetailScreen(
-                             memberNo: member.memberNo,
-                             memberName: member.memberName,
-                             mclubNo: mclubNo,
-                           ),
-                         ),
-                       );
-                    },
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

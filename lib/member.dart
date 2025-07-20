@@ -203,29 +203,31 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final String? mclubNo = widget.mclubNo;
     return Scaffold(
       appBar: AppBar(title: Text('회원 상세 정보')),
-      body: FutureBuilder<Memberdtl>(
-        future: _memberDetail,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData) {
-            return Center(child: Text('No data found'));
-          } else {
-            final member = snapshot.data!;
-            List<Widget> pages = [
-              _buildMemberInfoPage(member),
-              _buildNameCardPage(member),
-            ];
+      body: SafeArea(
+        child: FutureBuilder<Memberdtl>(
+          future: _memberDetail,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData) {
+              return Center(child: Text('No data found'));
+            } else {
+              final member = snapshot.data!;
+              List<Widget> pages = [
+                _buildMemberInfoPage(member),
+                _buildNameCardPage(member),
+              ];
 
-            if (member.clubNo != null && mclubNo != null && member.clubNo == mclubNo) {
-              pages.add(_buildSpouseInfoPage(member));
+              if (member.clubNo != null && mclubNo != null && member.clubNo == mclubNo) {
+                pages.add(_buildSpouseInfoPage(member));
+              }
+
+              return PageView(children: pages);
             }
-
-            return PageView(children: pages);
-          }
-        },
+          },
+        ),
       ),
     );
   }

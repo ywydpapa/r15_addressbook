@@ -5,7 +5,7 @@ import 'clubLogo.dart';
 import 'config/api_config.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -13,7 +13,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: ClubListScreen());
+    return MaterialApp(
+      home: const ClubListScreen(),
+      useInheritedMediaQuery: true, // Edge-to-Edge 대응 옵션 (Flutter 3.13+)
+    );
   }
 }
 
@@ -81,47 +84,52 @@ class _ClubListScreenState extends State<ClubListScreen> {
   Widget build(BuildContext context) {
     print('ClubListScreen - mclubNo: $mclubNo  mregionNo: $mregionNo');
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.yellow, title: Text('클럽 리스트')),
+      appBar: AppBar(
+        backgroundColor: Colors.yellow,
+        title: const Text('클럽 리스트'),
+      ),
       backgroundColor: Colors.yellow,
-      body: _clubList == null
-          ? Center(child: Text('No region selected'))
-          : FutureBuilder<List<Club>>(
-        future: _clubList,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No clubs found'));
-          } else {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) {
-                final club = snapshot.data![index];
-                return Card(
-                  margin: EdgeInsets.all(8.0),
-                  child: ListTile(
-                    leading: CircleAvatar(child: Text(club.clubNo.toString())),
-                    title: Text(club.clubName),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => LoadingScreen(
-                            clubNo: club.clubNo,
-                            clubName: club.clubName,
-                            mclubNo: mclubNo,
+      body: SafeArea(
+        child: _clubList == null
+            ? const Center(child: Text('No region selected'))
+            : FutureBuilder<List<Club>>(
+          future: _clubList,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Center(child: Text('No clubs found'));
+            } else {
+              return ListView.builder(
+                itemCount: snapshot.data!.length,
+                itemBuilder: (context, index) {
+                  final club = snapshot.data![index];
+                  return Card(
+                    margin: const EdgeInsets.all(8.0),
+                    child: ListTile(
+                      leading: CircleAvatar(child: Text(club.clubNo.toString())),
+                      title: Text(club.clubName),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LoadingScreen(
+                              clubNo: club.clubNo,
+                              clubName: club.clubName,
+                              mclubNo: mclubNo,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            );
-          }
-        },
+                        );
+                      },
+                    ),
+                  );
+                },
+              );
+            }
+          },
+        ),
       ),
     );
   }
