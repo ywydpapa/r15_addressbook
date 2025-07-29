@@ -252,7 +252,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final String? mfuncNo = args?['funcNo'];
     final String? clubName = args?['clubName'] ?? args?['clubname'];
     final imageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
@@ -349,10 +348,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  // 버튼 영역만 분리
   List<Widget> _buildButtons(BuildContext context, String? mfuncNo, String? mclubNo, String? mregionNo, String? memberNo, String? clubName) {
     if (mfuncNo == '1') {
-      // funcNo==1: 4개 버튼만
       return [
         Row(
           children: [
