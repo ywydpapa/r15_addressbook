@@ -26,7 +26,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-void main() async{
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await Firebase.initializeApp();
@@ -47,11 +47,17 @@ void main() async{
     ),
   );
 
+  // Android 및 iOS 초기화 설정 추가
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
+  final DarwinInitializationSettings initializationSettingsIOS =
+  DarwinInitializationSettings(); // iOS용 설정 추가
+
   final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
+    iOS: initializationSettingsIOS, // 반드시 추가!
   );
+
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
   runApp(MyApp());
