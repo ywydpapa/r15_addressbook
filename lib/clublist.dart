@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'clubLogo.dart';
+import 'clublogo.dart';
 import 'config/api_config.dart';
 
 void main() {

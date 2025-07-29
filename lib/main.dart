@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'clubList.dart';
+import 'clublist.dart';
 import 'searchresult.dart';
-import 'rankMember.dart';
-import 'clubDocs.dart';
-import 'docViewer.dart';
+import 'rankmember.dart';
+import 'clubdocs.dart';
+import 'docviewer.dart';
 import 'settings.dart';
 import 'request.dart';
 import 'notice.dart';
-import 'clubmemberList.dart';
-import 'noticeViewer.dart';
+import 'clubmemberlist.dart';
+import 'noticeviewer.dart';
 import 'config/api_config.dart';
 import 'dart:io';
 import 'package:flutter/services.dart'; // 추가
