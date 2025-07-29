@@ -9,6 +9,7 @@ import 'docViewer.dart';
 import 'settings.dart';
 import 'request.dart';
 import 'notice.dart';
+import 'clubmemberList.dart';
 import 'noticeViewer.dart';
 import 'config/api_config.dart';
 import 'dart:io';
@@ -18,7 +19,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MyHttpOverrides(); //테스트용 우회 설정
 
-  // 시스템 바를 투명하게 만들고 아이콘 색상을 지정 (edge-to-edge 대응)
+
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -60,10 +61,12 @@ class MyApp extends StatelessWidget {
         '/request': (context) => RequestScreen(),
         '/setting': (context) => SettingScreen(),
         '/notice': (context) => NoticeScreen(),
-      },
+        '/cmList': (context) => ClubMemberListScreen(),
+      }
     );
   }
 }
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -78,6 +81,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String _clubNo = '';
   String _memberNo = '';
   String _mregionNo = '';
+  String _funcNo = '';
+  String _clubName = '';
 
   Future<void> _login() async {
     final phoneno = _usernameController.text;
@@ -91,17 +96,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/zlogin/$phoneno'),
+        Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
       );
+      final decodedBody = utf8.decode(response.bodyBytes);
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = jsonDecode(decodedBody);
 
         if (data.containsKey('clubno')) {
           setState(() {
             _clubNo = data['clubno'].toString();
             _memberNo = data['memberno'].toString();
             _mregionNo = data['regionno'].toString();
+            _funcNo = data['funcno'].toString();
+            _clubName = data['clubname'].toString();
             _errorMessage = '';
           });
 
@@ -112,6 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
               'clubNo': _clubNo,
               'memberNo': _memberNo,
               'regionNo': _mregionNo,
+              'funcNo': _funcNo,
+              'clubName': _clubName,
             },
           );
         } else if (data.containsKey('error')) {
@@ -185,15 +195,21 @@ class HomeScreen extends StatelessWidget {
     final String? mclubNo = args?['clubNo'];
     final String? memberNo = args?['memberNo'];
     final String? mregionNo = args?['regionNo'];
+    final String? mfuncNo = args?['funcNo'];
+    final String? clubName = args?['clubName'] ?? args?['clubname'];
     final imageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
         title: Text(
-          (mregionNo != null && mregionNo.isNotEmpty)
+          (mfuncNo == '1')
+              ? ((mclubNo != null && mclubNo.isNotEmpty)
+              ? '$clubName 주소록'
+              : '$clubName 주소록 로그인 만료')
+              : ((mregionNo != null && mregionNo.isNotEmpty)
               ? '$mregionNo 지역 회원 주소록'
-              : '지역주소록 로그인 만료',
+              : '지역주소록 로그인 만료'),
         ),
         actions: [
           IconButton(
@@ -218,7 +234,7 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       backgroundColor: Colors.yellow,
-      body: SafeArea( // <-- SafeArea로 감싸기
+      body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
@@ -269,173 +285,240 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo != null){
-                                Navigator.pushNamed(
-                                  context,
-                                  '/clubList',
-                                  arguments: {
-                                    'mregionNo': mregionNo,
-                                    'mclubNo': mclubNo,
-                                  },
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('클럽별 회원 목록', maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo != null){
-                                Navigator.pushNamed(
-                                  context,
-                                  '/rankMembers',
-                                  arguments: {
-                                    'mregionNo': mregionNo,
-                                    'mclubNo': mclubNo,
-                                  },
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('직책별 회원 목록',maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo != null){
-                                Navigator.pushNamed(
-                                  context,
-                                  '/search',
-                                  arguments: {
-                                    'mregionNo': mregionNo,
-                                    'mclubNo': mclubNo,
-                                  },
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('키워드 회원 검색',maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo != null) {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/clubDocs',
-                                  arguments: mclubNo,
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('클럽 문서 목록', maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo!= null){
-                                Navigator.pushNamed(
-                                  context,
-                                  '/notice',
-                                  arguments: {
-                                    'mregionNo': mregionNo,
-                                    'mclubNo': mclubNo,
-                                  },
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('공지사항', maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (mclubNo != null) {
-                                Navigator.pushNamed(
-                                  context,
-                                  '/setting',
-                                  arguments: {
-                                    'clubNo': mclubNo,
-                                    'memberNo': memberNo,
-                                  },
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                                );
-                                Future.delayed(Duration(seconds: 2), () {
-                                  Navigator.pushReplacementNamed(context, '/login');
-                                });
-                              }
-                            },
-                            child: Text('설정',maxLines:1,overflow: TextOverflow.ellipsis,),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  children: _buildButtons(context, mfuncNo, mclubNo, mregionNo, memberNo, clubName),
                 ),
               ),
-              SizedBox(height: 10,),
+              SizedBox(height: 10),
             ],
           ),
         ),
       ),
     );
+  }
+  // 버튼 영역만 분리
+  List<Widget> _buildButtons(BuildContext context, String? mfuncNo, String? mclubNo, String? mregionNo, String? memberNo, String? clubName) {
+    if (mfuncNo == '1') {
+      // funcNo==1: 4개 버튼만
+      return [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/cmList',
+                    arguments: {
+                      'mregionNo': mregionNo,
+                      'mclubNo': mclubNo,
+                      'clubNo': mclubNo,
+                      'clubName': clubName,
+                    },
+                  );
+                },
+                child: Text('$clubName 회원목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/clubDocs',
+                      arguments: mclubNo,
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('클럽문서목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/notice',
+                    arguments: {
+                      'mregionNo': mregionNo,
+                      'mclubNo': mclubNo,
+                      'mfuncNo': mfuncNo,
+                    },
+                  );
+                },
+                child: Text('$clubName 공지사항', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/setting',
+                    arguments: {
+                      'clubNo': mclubNo,
+                      'memberNo': memberNo,
+                      'mfuncNo': mfuncNo,
+                    },
+                  );
+                },
+                child: Text('설정', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+      ];
+    } else {
+      // 기본: 기존 8개 버튼(2x4)
+      return [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null){
+                    Navigator.pushNamed(
+                      context,
+                      '/clubList',
+                      arguments: {
+                        'mregionNo': mregionNo,
+                        'mclubNo': mclubNo,
+                      },
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('클럽별 회원 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null){
+                    Navigator.pushNamed(
+                      context,
+                      '/rankMembers',
+                      arguments: {
+                        'mregionNo': mregionNo,
+                        'mclubNo': mclubNo,
+                      },
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('직책별 회원 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null){
+                    Navigator.pushNamed(
+                      context,
+                      '/search',
+                      arguments: {
+                        'mregionNo': mregionNo,
+                        'mclubNo': mclubNo,
+                      },
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('키워드 회원 검색', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/clubDocs',
+                      arguments: mclubNo,
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('클럽 문서 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo!= null){
+                    Navigator.pushNamed(
+                      context,
+                      '/notice',
+                      arguments: {
+                        'mregionNo': mregionNo,
+                        'mclubNo': mclubNo,
+                      },
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('공지사항', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/setting',
+                      arguments: {
+                        'clubNo': mclubNo,
+                        'memberNo': memberNo,
+                        'mfuncNo': mfuncNo,
+                      },
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('설정', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+      ];
+    }
+  }
+
+  void _showSessionExpired(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
+    );
+    Future.delayed(Duration(seconds: 2), () {
+      Navigator.pushReplacementNamed(context, '/login');
+    });
   }
 }

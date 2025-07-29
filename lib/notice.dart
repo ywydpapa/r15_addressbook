@@ -2,17 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
-import 'noticeViewer.dart';
 
 class NoticeScreen extends StatelessWidget {
   const NoticeScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // arguments를 안전하게 파싱
     final args = ModalRoute.of(context)?.settings.arguments;
     int? mregionNo;
-    String? mclubNo;
+    int? mclubNo;
+    String? mfuncNo;
 
     if (args is Map<String, dynamic>) {
       final dynamic regionValue = args['mregionNo'];
@@ -21,7 +20,8 @@ class NoticeScreen extends StatelessWidget {
       } else if (regionValue is String) {
         mregionNo = int.tryParse(regionValue);
       }
-      mclubNo = args['mclubNo']?.toString();
+      mclubNo = int.parse(args['mclubNo']);
+      mfuncNo = args['mfuncNo']?.toString();
     }
 
     return Scaffold(
@@ -30,7 +30,7 @@ class NoticeScreen extends StatelessWidget {
       body: SafeArea(
         child: (mregionNo != null && mclubNo != null)
             ? FutureBuilder<List<Map<String, dynamic>>>(
-          future: fetchClubDocs(mregionNo, mclubNo),
+          future: fetchClubDocs(mregionNo, mclubNo, mfuncNo: mfuncNo),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
@@ -55,7 +55,10 @@ class NoticeScreen extends StatelessWidget {
                         Navigator.pushNamed(
                           context,
                           '/noticeViewer',
-                          arguments: doc['noticeNo'],
+                          arguments: {
+                            'noticeNo': doc['noticeNo'],
+                            'mfuncNo': mfuncNo,
+                          },
                         );
                       },
                     ),
@@ -72,12 +75,16 @@ class NoticeScreen extends StatelessWidget {
     );
   }
 
-  Future<List<Map<String, dynamic>>> fetchClubDocs(int mregionNo, String mclubNo) async {
+  Future<List<Map<String, dynamic>>> fetchClubDocs(int mregionNo, int mclubNo, {String? mfuncNo}) async {
     try {
-      final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/notice/$mregionNo'),
-      );
+      String url;
+      if (mfuncNo == '1') {
+        url = '${ApiConf.baseUrl}/phapp/clubnotice/$mclubNo';
+      } else {
+        url = '${ApiConf.baseUrl}/phapp/notice/$mregionNo';
+      }
 
+      final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         final data = json.decode(decodedBody);

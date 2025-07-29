@@ -5,14 +5,12 @@ import 'config/api_config.dart';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
-
   @override
   State<SettingScreen> createState() => _SettingScreenState();
 }
-
 class _SettingScreenState extends State<SettingScreen> {
   int _securityLevel = 0; // 0: 전체공개, 1: 1단계 비공개, 2: 2단계 비공개, 3: 전체 비공개
-  bool _isNotificationOn = false;
+  int _operationMode = 0; // 0: 지역수첩, 1: 클럽수첩
   bool _isLoading = true;
 
   String? memberNo;
@@ -29,48 +27,52 @@ class _SettingScreenState extends State<SettingScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (memberNo == null) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-      memberNo = args?['memberNo'];
-      if (memberNo != null) {
-        _fetchSecurityLevel(memberNo!);
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      if (memberNo == null) {
+        memberNo = args['memberNo'];
+        if (memberNo != null) {
+          _fetchSecurityLevel(memberNo!);
+        }
+      }
+      // 여기 추가
+      if (args.containsKey('mfuncNo')) {
+        final argFuncNo = args['mfuncNo'];
+        if (argFuncNo != null) {
+          setState(() {
+            _operationMode = int.tryParse(argFuncNo.toString()) ?? 0;
+          });
+        }
       }
     }
   }
 
   Future<void> _fetchSecurityLevel(String memberNo) async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
     final url = '${ApiConf.baseUrl}/phapp/getmask/$memberNo';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-          String code = data['maskYN'] ?? 'N';
+        String code = data['maskYN'] ?? 'N';
         int idx = _securityCodes.indexOf(code);
         setState(() {
           _securityLevel = idx == -1 ? 0 : idx;
           _isLoading = false;
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('설정 정보를 불러오지 못했습니다.')),
         );
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('네트워크 오류: $e')),
       );
     }
   }
-
 
   Future<void> _updateSecurityLevel(int level) async {
     if (memberNo == null) return;
@@ -90,21 +92,38 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
+  Future<void> _updateOperationMode(int mode) async {
+    if (memberNo == null) return;
+    final url = '${ApiConf.baseUrl}/phapp/funcNo/$memberNo/$mode';
+    try {
+      final response = await http.post(Uri.parse(url));
+      if (response.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('운영설정 변경 실패: ${response.statusCode}')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('네트워크 오류: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('설정관리'),
+        title: const Text('설정관리'),
         backgroundColor: Colors.yellow,
       ),
       backgroundColor: Colors.yellow,
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
+            // 개인정보 공개 수준
             Text(
               '개인정보 공개 수준설정',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -116,9 +135,7 @@ class _SettingScreenState extends State<SettingScreen> {
               divisions: 3,
               label: _securityLabels[_securityLevel],
               onChanged: (double value) async {
-                setState(() {
-                  _securityLevel = value.round();
-                });
+                setState(() => _securityLevel = value.round());
                 await _updateSecurityLevel(_securityLevel);
               },
             ),
@@ -134,7 +151,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 );
               }),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
@@ -142,16 +159,53 @@ class _SettingScreenState extends State<SettingScreen> {
                 style: TextStyle(fontSize: 15, color: Colors.black87),
               ),
             ),
-            SizedBox(height: 20),
-            SwitchListTile(
-              title: Text('알림 받음'),
-              value: _isNotificationOn,
-              onChanged: (value) {
-                setState(() {
-                  _isNotificationOn = value;
-                });
-              },
+            const SizedBox(height: 20),
+
+            // 운영설정
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '운영설정',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        double buttonWidth = (constraints.maxWidth / 2) - 4;
+                        return ToggleButtons(
+                          isSelected: [
+                            _operationMode == 0,
+                            _operationMode == 1,
+                          ],
+                          onPressed: (int index) async {
+                            await _updateOperationMode(index);
+                            setState(() => _operationMode = index);
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          selectedColor: Colors.white,
+                          fillColor: Colors.orange,
+                          color: Colors.black,
+                          constraints: BoxConstraints(
+                            minHeight: 48,
+                            minWidth: buttonWidth,
+                          ),
+                          children: [
+                            Text('지역수첩', style: TextStyle(fontSize: 16)),
+                            Text('클럽수첩', style: TextStyle(fontSize: 16)),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 20),
+            // 알림 설정
           ],
         ),
       ),

@@ -69,54 +69,62 @@ class Memberdtl {
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
     return Memberdtl(
-      memberNo: json['memberNo'] != null ? int.tryParse(json['memberNo'].toString()) : null,
+      memberNo: json['memberNo'] as int?,
       memberName: json['memberName'] ?? '정보 없음',
       memberPhone: json['memberPhone'] ?? '정보 없음',
       rankTitle: json['rankTitle'] ?? '정보 없음',
-      mPhotoBase64: json['mPhotoBase64'],
-      memberMF: json['memberMF'] ?? '',
-      memberAddress: json['memberAddress'] ?? '',
-      memberEmail: json['memberEmail'] ?? '',
-      addMemo: json['addMemo'] ?? '',
-      memberBirth: json['memberBirth'] ?? '',
-      clubName: json['clubName'] ?? '소속클럽 없음',
+      mPhotoBase64: (json['mPhotoBase64'] != null &&
+          json['mPhotoBase64'].toString() != '0')
+          ? json['mPhotoBase64'].toString()
+          : null,
+      memberMF: json['memberMF']?.toString() ?? '',
+      memberAddress: json['memberAddress']?.toString() ?? '',
+      memberEmail: json['memberEmail']?.toString() ?? '',
+      addMemo: json['addMemo']?.toString() ?? '',
+      memberBirth: json['memberBirth']?.toString() ?? '',
+      clubName: json['clubName']?.toString() ?? '소속클럽 없음',
       clubNo: json['clubNo']?.toString(),
-      nameCard: json['nameCard'],
-      spousePhoto: json['spousePhoto'],
-      spouseName: json['spouseName'],
-      spousePhone: json['spousePhone'],
-      spouseBirth: json['spouseBirth'],
-      officeAddress: json['officeAddress'],
-      bisTitle: json['bisTitle'],
-      bisRank: json['bisRank'],
-      bisType: json['bisType'],
-      bistypeTitle: json['bistypeTitle'],
-      offTel: json['offtel'],
-      offAddress: json['offAddress'],
-      offEmail: json['offEmail'],
-      offPostNo: json['offPost'],
-      offWeb: json['offWeb'],
-      offSns: json['offSns'],
-      bisMemo: json['bisMemo'],
+      nameCard: (json['nameCard'] != null && json['nameCard'].toString() != '0')
+          ? json['nameCard'].toString()
+          : null,
+      spousePhoto: (json['spousePhoto'] != null &&
+          json['spousePhoto'].toString() != '0')
+          ? json['spousePhoto'].toString()
+          : null,
+      spouseName: json['spouseName']?.toString(),
+      spousePhone: json['spousePhone']?.toString(),
+      spouseBirth: json['spouseBirth']?.toString(),
+      officeAddress: json['officeAddress']?.toString(),
+      bisTitle: json['bisTitle']?.toString(),
+      bisRank: json['bisRank']?.toString(),
+      bisType: json['bisType']?.toString(),
+      bistypeTitle: json['bistypeTitle']?.toString(),
+      offTel: json['offtel']?.toString(),
+      offAddress: json['offAddress']?.toString(),
+      offEmail: json['offEmail']?.toString(),
+      offPostNo: json['offPost']?.toString(),
+      offWeb: json['offWeb']?.toString(),
+      offSns: json['offSns']?.toString(),
+      bisMemo: json['bisMemo']?.toString(),
     );
   }
 }
 
-class MemberDetailScreen extends StatefulWidget {
+  class MemberDetailScreen extends StatefulWidget {
   final int memberNo;
   final String memberName;
   final String? mclubNo;
 
   const MemberDetailScreen({
-    super.key,
-    required this.memberNo,
-    required this.memberName,
-    this.mclubNo,
+  super.key,
+  required this.memberNo,
+  required this.memberName,
+  this.mclubNo,
   });
 
   @override
   _MemberDetailScreenState createState() => _MemberDetailScreenState();
-}
+  }
 
 class _MemberDetailScreenState extends State<MemberDetailScreen> {
   late Future<Memberdtl> _memberDetail;
@@ -220,7 +228,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 _buildNameCardPage(member),
               ];
 
-              if (member.clubNo != null && mclubNo != null && member.clubNo == mclubNo) {
+              if (member.clubNo != null && mclubNo != null && member.clubNo.toString() == mclubNo.toString())
+              {
                 pages.add(_buildSpouseInfoPage(member));
               }
 

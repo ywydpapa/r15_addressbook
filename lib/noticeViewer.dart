@@ -25,11 +25,22 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
   }
 
   Future<void> fetchHtmlData() async {
-    // 이전 화면에서 전달받은 docNo 값
-    final dynamic noticeNo = ModalRoute.of(context)?.settings.arguments;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    dynamic noticeNo;
+    String? mfuncNo;
+    if (args is Map<String, dynamic>) {
+      noticeNo = args['noticeNo'];
+      mfuncNo = args['mfuncNo']?.toString();
+    } else {
+      noticeNo = args;
+    }
 
-    // docNo를 URL에 반영
-    final String url = "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
+    String url;
+    if (mfuncNo == '1') {
+      url = "${ApiConf.baseUrl}/phapp/clubnoticeViewer/$noticeNo";
+    } else {
+      url = "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
+    }
 
     try {
       final response = await http.get(Uri.parse(url));
