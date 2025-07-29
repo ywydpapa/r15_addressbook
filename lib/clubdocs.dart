@@ -76,7 +76,6 @@ class ClubDocsScreen extends StatelessWidget {
         throw Exception('Failed to load documents: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error fetching club docs: $e');
       throw Exception('문서를 불러오는 중 오류가 발생했습니다.');
     }
   }

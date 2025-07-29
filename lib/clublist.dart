@@ -82,7 +82,6 @@ class _ClubListScreenState extends State<ClubListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('ClubListScreen - mclubNo: $mclubNo  mregionNo: $mregionNo');
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,

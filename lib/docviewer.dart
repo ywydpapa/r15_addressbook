@@ -44,12 +44,10 @@ class DocViewerScreenState extends State<DocViewerScreen> {
               jsonResponse["doc"][0]["title"] ?? "문서 제목 없음"; // 타이틀 데이터, 없으면 기본값
           isLoading = false; // 로딩 완료
         });
-        print("HTML data and title loaded successfully."); // 성공 메시지
       } else {
         throw Exception("Failed to load HTML data: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error occurred: ${e.toString()}"); // 에러 메시지 출력
       setState(() {
         htmlData = "<p>Error loading content: ${e.toString()}</p>";
         htmlTitle = "Error"; // 에러 발생 시 기본 타이틀
