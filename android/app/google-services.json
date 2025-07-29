@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "553880054667",
+    "project_id": "r15addr",
+    "storage_bucket": "r15addr.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:553880054667:android:918eb5dff3300a67fddd8e",
+        "android_client_info": {
+          "package_name": "kr.swcore.r15_addressbook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfr4YQPxqPpHp1yNf_3_GDugZhhcY6Z9g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
