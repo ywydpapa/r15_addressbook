@@ -63,6 +63,19 @@ void main() async {
   runApp(MyApp());
 }
 
+void subscribeToTopics(String regionNo, String clubNo) async {
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  // regionNo와 clubNo를 이용해 토픽명 생성
+  final regionTopic = 'region_$regionNo';
+  final clubTopic = 'club_$clubNo';
+
+  await messaging.subscribeToTopic(regionTopic);
+  await messaging.subscribeToTopic(clubTopic);
+
+  print('Subscribed to $regionTopic and $clubTopic');
+}
+
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -143,6 +156,9 @@ class _LoginScreenState extends State<LoginScreen> {
             _clubName = data['clubname'].toString();
             _errorMessage = '';
           });
+
+          //메세지 토픽호출
+          subscribeToTopics(_mregionNo, _clubNo);
 
           Navigator.pushReplacementNamed(
             context,
