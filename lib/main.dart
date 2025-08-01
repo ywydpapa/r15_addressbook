@@ -32,7 +32,7 @@ void main() async {
   try {
     await Firebase.initializeApp();
   } catch (e) {
-    print('Firebase 초기화 실패: $e');
+    print(e);
   }
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -70,14 +70,12 @@ void subscribeToTopics(String regionNo, String clubNo) async {
   String? prevClubNo = prefs.getString('prevClubNo');
   if (prevClubNo != null && prevClubNo != clubNo) {
     await messaging.unsubscribeFromTopic('club_$prevClubNo');
-    print('Unsubscribed from club_$prevClubNo');
   }
   // 새 클럽 토픽 구독
   await messaging.subscribeToTopic(clubTopic);
   await messaging.subscribeToTopic(regionTopic);
   // 새 클럽 토픽 저장
   await prefs.setString('prevClubNo', clubNo);
-  print('Subscribed to $regionTopic and $clubTopic');
 }
 
 void unsubscribeAllTopics() async {
