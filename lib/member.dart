@@ -242,91 +242,102 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Widget _buildMemberInfoPage(Memberdtl member) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16),
-        Center(
-          child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-              ? Image.memory(
-            base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-            height: 280,
-            width: 200,
-            fit: BoxFit.cover,
-          )
-              : Image.asset(
-            'assets/defaultphoto.png',
-            height: 280,
-            width: 200,
-            fit: BoxFit.cover,
-          ),
-        ),
-        SizedBox(height: 24),
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Table(
-            columnWidths: {
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(2),
-            },
-            children: [
-              _buildTableRow('회원성명', member.memberName),
-              _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
-              _buildTableRow('직책', member.rankTitle),
-              _buildTableRow('연락처', member.memberPhone, isPhone: true),
-              _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
-              _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
-              _buildTableRow('추가 기재 사항', member.addMemo ?? '없음'),
-            ],
-          ),
-        ),
-      ],
+    return SingleChildScrollView(
+        child: Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 16),
+            Center(
+              child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
+                  ? Image.memory(
+                base64Decode(cleanBase64Data(member.mPhotoBase64!)),
+                height: 280,
+                width: 200,
+                fit: BoxFit.cover,
+              )
+                  : Image.asset(
+                'assets/defaultphoto.png',
+                height: 280,
+                width: 200,
+                fit: BoxFit.cover,
+              ),
+            ),
+            SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Table(
+                columnWidths: {
+                  0: FlexColumnWidth(1),
+                  1: FlexColumnWidth(2),
+                },
+                children: [
+                  _buildTableRow('회원성명', member.memberName),
+                  _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
+                  _buildTableRow('직책', member.rankTitle),
+                  _buildTableRow('연락처', member.memberPhone, isPhone: true),
+                  _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
+                  _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
+                  _buildTableRow('추가 기재 사항', member.addMemo ?? '없음'),
+                ],
+              ),
+            ),
+          ],
+         ),
+       )
     );
   }
 
   Widget _buildNameCardPage(Memberdtl member) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        member.nameCard != null && member.nameCard!.isNotEmpty
-            ? Image.memory(
-          base64Decode(cleanBase64Data(member.nameCard!)),
-          height: 200,
-          width: 360,
-          fit: BoxFit.cover,
-        )
-            : Image.asset(
-          'assets/defaultphoto.png',
-          height: 200,
-          width: 300,
-          fit: BoxFit.cover,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            member.nameCard != null && member.nameCard!.isNotEmpty
+                ? Image.memory(
+              base64Decode(cleanBase64Data(member.nameCard!)),
+              height: 200,
+              width: 360,
+              fit: BoxFit.cover,
+            )
+                : Image.asset(
+              'assets/defaultphoto.png',
+              height: 200,
+              width: 300,
+              fit: BoxFit.cover,
+            ),
+            SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0),
+              child: Table(
+                columnWidths: {
+                  0: FlexColumnWidth(1),
+                  1: FlexColumnWidth(2),
+                },
+                children: [
+                  _buildTableRow('소속클럽', member.clubName ?? '없음'),
+                  _buildTableRow('업체명', member.bisTitle ?? '없음'),
+                  _buildTableRow('직책', member.bisRank ?? '없음'),
+                  _buildTableRow('업종', member.bisType ?? '없음'),
+                  _buildTableRow('상세업종', member.bistypeTitle ?? '없음'),
+                  _buildTableRow('사무실주소', member.offAddress ?? '없음'),
+                  _buildTableRow('우편번호', member.offPostNo ?? '없음'),
+                  _buildTableRow('사무실 전화번호', member.offTel ?? '없음'),
+                  _buildTableRow('업무용 이메일', member.offEmail ?? '없음'),
+                  _buildTableRow('웹페이지', member.offWeb ?? '없음'),
+                  _buildTableRow('업무용 SNS', member.offSns ?? '없음'),
+                ],
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Table(
-            columnWidths: {
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(2),
-            },
-            children: [
-              _buildTableRow('소속클럽', member.clubName ?? '없음'),
-              _buildTableRow('업체명', member.bisTitle ?? '없음'),
-              _buildTableRow('직책', member.bisRank ?? '없음'),
-              _buildTableRow('업종', member.bisType ?? '없음'),
-              _buildTableRow('상세업종', member.bistypeTitle ?? '없음'),
-              _buildTableRow('사무실주소', member.offAddress ?? '없음'),
-              _buildTableRow('우편번호', member.offPostNo ?? '없음'),
-              _buildTableRow('사무실 전화번호', member.offTel ?? '없음'),
-              _buildTableRow('업무용 이메일', member.offEmail ?? '없음'),
-              _buildTableRow('웹페이지', member.offWeb ?? '없음'),
-              _buildTableRow('업무용 SNS', member.offSns ?? '없음'),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
+
 
   Widget _buildSpouseInfoPage(Memberdtl member) {
     return Column(

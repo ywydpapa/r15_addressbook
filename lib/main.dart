@@ -17,6 +17,7 @@ import 'package:flutter/services.dart'; // 추가
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -65,15 +66,43 @@ void main() async {
 
 void subscribeToTopics(String regionNo, String clubNo) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
+  SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  // regionNo와 clubNo를 이용해 토픽명 생성
   final regionTopic = 'region_$regionNo';
   final clubTopic = 'club_$clubNo';
 
-  await messaging.subscribeToTopic(regionTopic);
+  // 이전 클럽 토픽 구독 해제
+  String? prevClubNo = prefs.getString('prevClubNo');
+  if (prevClubNo != null && prevClubNo != clubNo) {
+    await messaging.unsubscribeFromTopic('club_$prevClubNo');
+    print('Unsubscribed from club_$prevClubNo');
+  }
+
+  // 새 클럽 토픽 구독
   await messaging.subscribeToTopic(clubTopic);
+  await messaging.subscribeToTopic(regionTopic);
+
+  // 새 클럽 토픽 저장
+  await prefs.setString('prevClubNo', clubNo);
 
   print('Subscribed to $regionTopic and $clubTopic');
+}
+
+void unsubscribeAllTopics() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? prevClubNo = prefs.getString('prevClubNo');
+  String? prevRegionNo = prefs.getString('prevRegionNo');
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  if (prevClubNo != null) {
+    await messaging.unsubscribeFromTopic('club_$prevClubNo');
+  }
+  if (prevRegionNo != null) {
+    await messaging.unsubscribeFromTopic('region_$prevRegionNo');
+  }
+  // 저장값 초기화
+  await prefs.remove('prevClubNo');
+  await prefs.remove('prevRegionNo');
 }
 
 class MyHttpOverrides extends HttpOverrides {
@@ -594,6 +623,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
     );
+    unsubscribeAllTopics();//알림 받기 해제
     Future.delayed(Duration(seconds: 2), () {
       Navigator.pushReplacementNamed(context, '/login');
     });
