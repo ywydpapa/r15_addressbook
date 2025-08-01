@@ -38,7 +38,6 @@ void main() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   HttpOverrides.global = MyHttpOverrides(); //테스트용 우회 설정
   NotificationSettings settings = await messaging.requestPermission();
-
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -47,7 +46,6 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-
   // Android 및 iOS 초기화 설정 추가
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -58,9 +56,7 @@ void main() async {
     android: initializationSettingsAndroid,
     iOS: initializationSettingsIOS, // 반드시 추가!
   );
-
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
   runApp(MyApp());
 }
 
@@ -70,21 +66,17 @@ void subscribeToTopics(String regionNo, String clubNo) async {
 
   final regionTopic = 'region_$regionNo';
   final clubTopic = 'club_$clubNo';
-
   // 이전 클럽 토픽 구독 해제
   String? prevClubNo = prefs.getString('prevClubNo');
   if (prevClubNo != null && prevClubNo != clubNo) {
     await messaging.unsubscribeFromTopic('club_$prevClubNo');
     print('Unsubscribed from club_$prevClubNo');
   }
-
   // 새 클럽 토픽 구독
   await messaging.subscribeToTopic(clubTopic);
   await messaging.subscribeToTopic(regionTopic);
-
   // 새 클럽 토픽 저장
   await prefs.setString('prevClubNo', clubNo);
-
   print('Subscribed to $regionTopic and $clubTopic');
 }
 
