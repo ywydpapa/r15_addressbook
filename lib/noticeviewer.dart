@@ -33,7 +33,6 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
     if (answerType == "ATTYN" || answerType == "AGREE") {
       String positiveLabel = answerType == "ATTYN" ? "참석" : "동의";
       String negativeLabel = answerType == "ATTYN" ? "불참" : "부동의";
-      String attendType = answerType == "ATTYN" ? "CLUB" : "REGION"; // noticeType 값 예시, 실제 상황에 맞게 수정
 
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
