@@ -15,7 +15,11 @@ class NoticeViewerScreen extends StatefulWidget {
 class NoticeViewerScreenState extends State<NoticeViewerScreen> {
   final staticAnchorKey = GlobalKey();
   String htmlData = ""; // API에서 가져온 HTML 데이터를 저장할 변수
-  String htmlTitle = ""; // API에서 가져온 타이틀 데이터를 저장할 변수
+  String htmlTitle = "";
+  int noticeNo = 0;
+  int memberNo = 0;
+  String noticeType = ""; // API에서 가져온 타이틀 데이터를 저장할 변수
+  String answerType = ""; // API에서 가져온 타이틀 데이터를 저장할 변수
   bool isLoading = true; // 로딩 상태를 관리하는 변수
   bool _isLoaded = false;
 
@@ -25,22 +29,96 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
     fetchHtmlData(); // 화면 초기화 시 HTML 데이터를 가져옴
   }
 
+  Widget? _buildBottomButtons() {
+    if (answerType == "ATTYN" || answerType == "AGREE") {
+      String positiveLabel = answerType == "ATTYN" ? "참석" : "동의";
+      String negativeLabel = answerType == "ATTYN" ? "불참" : "부동의";
+      String attendType = answerType == "ATTYN" ? "CLUB" : "REGION"; // noticeType 값 예시, 실제 상황에 맞게 수정
+
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await postNoticeAttend(
+                  memberNo: memberNo, // 실제 변수명에 맞게 수정
+                  noticeNo: noticeNo, // 실제 변수명에 맞게 수정
+                  noticeType: noticeType, // 실제 변수명에 맞게 수정
+                  attend: 'Y', // 참석/동의
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$positiveLabel 처리 완료')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('오류: $e')),
+                );
+              }
+            },
+            child: Text(positiveLabel),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await postNoticeAttend(
+                  memberNo: memberNo,
+                  noticeNo: noticeNo,
+                  noticeType: noticeType,
+                  attend: 'N', // 불참/부동의
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$negativeLabel 처리 완료')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('오류: $e')),
+                );
+              }
+            },
+            child: Text(negativeLabel),
+          ),
+        ],
+      );
+    }
+    return null;
+  }
+
+
+  Future<void> postNoticeAttend({
+    required int memberNo,
+    required int noticeNo,
+    required String noticeType,
+    required String attend, // 'Y' or 'N'
+  }) async {
+    final url = '${ApiConf.baseUrl}/phapp/noticeAttend/$memberNo/$noticeNo/$noticeType/$attend';
+    final response = await http.post(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw Exception('참석/동의 정보 전송 실패: ${response.statusCode}');
+    }
+  }
+
   Future<void> fetchHtmlData() async {
-    final args = ModalRoute
-        .of(context)
-        ?.settings
-        .arguments;
-    dynamic noticeNo;
-    String? mfuncNo;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    dynamic argNoticeNo;
+    String? argMfuncNo;
+    String? argNoticeType;
+    int? argMemberNo;
     if (args is Map<String, dynamic>) {
-      noticeNo = args['noticeNo'];
-      mfuncNo = args['mfuncNo']?.toString();
+      argNoticeNo = args['noticeNo'];
+      argMfuncNo = args['mfuncNo']?.toString();
+      argNoticeType = args['noticeType']?.toString();
+      argMemberNo = args['memberNo'];
     } else {
-      noticeNo = args;
+      argNoticeNo = args;
     }
 
+    noticeNo = argNoticeNo is int ? argNoticeNo : int.tryParse(argNoticeNo.toString()) ?? 0;
+    noticeType = argNoticeType ?? "";
+    memberNo = argMemberNo is int ? argMemberNo : int.tryParse(argMemberNo.toString()) ?? 0;
+
     String url;
-    if (mfuncNo == '1') {
+    if (argMfuncNo == '1') {
       url = "${ApiConf.baseUrl}/phapp/clubnoticeViewer/$noticeNo";
     } else {
       url = "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
@@ -54,10 +132,12 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
           utf8.decode(response.bodyBytes),
         );
         setState(() {
+          noticeNo = jsonResponse["docs"][0]["noticeNo"]; // API에서 받은 HTML 본문
           htmlData = jsonResponse["docs"][0]["noticeCont"]; // API에서 받은 HTML 본문
           htmlTitle =
               jsonResponse["docs"][0]["noticeTitle"] ??
                   "문서 제목 없음"; // 타이틀 데이터, 없으면 기본값
+          answerType = jsonResponse["docs"][0]["answerType"] ?? ""; // 추가
           isLoading = false; // 로딩 완료
         });
       } else {
@@ -207,7 +287,7 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
                       const SvgHtmlExtension(),
                     ],
                     onLinkTap: (url, _, __) {
-                      debugPrint("Opening $url...");
+                      debugPrint("Opening URL");
                     },
                     onCssParseError: (css, messages) {
                       debugPrint("css that errored: $css");
@@ -224,6 +304,12 @@ class NoticeViewerScreenState extends State<NoticeViewerScreen> {
           },
         ),
       ),
+      bottomNavigationBar: _buildBottomButtons() != null
+          ? Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: _buildBottomButtons(),
+      )
+          : null,
     );
   }
 }

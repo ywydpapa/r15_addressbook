@@ -60,28 +60,42 @@ void main() async {
   runApp(MyApp());
 }
 
-void subscribeToTopics(String regionNo, String clubNo) async {
+void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
   final regionTopic = 'region_$regionNo';
   final clubTopic = 'club_$clubNo';
-  // 이전 클럽 토픽 구독 해제
+  final memberTopic = 'member_$memberNo';
+
   String? prevClubNo = prefs.getString('prevClubNo');
+  String? prevRegionNo = prefs.getString('prevRegionNo');
+  String? prevMemberNo = prefs.getString('prevMemberNo');
+
   if (prevClubNo != null && prevClubNo != clubNo) {
     await messaging.unsubscribeFromTopic('club_$prevClubNo');
   }
-  // 새 클럽 토픽 구독
+  if (prevRegionNo != null && prevRegionNo != regionNo) {
+    await messaging.unsubscribeFromTopic('region_$prevRegionNo');
+  }
+  if (prevMemberNo != null && prevMemberNo != memberNo) {
+    await messaging.unsubscribeFromTopic('member_$prevMemberNo');
+  }
+
   await messaging.subscribeToTopic(clubTopic);
   await messaging.subscribeToTopic(regionTopic);
-  // 새 클럽 토픽 저장
+  await messaging.subscribeToTopic(memberTopic);
+
   await prefs.setString('prevClubNo', clubNo);
+  await prefs.setString('prevRegionNo', regionNo);
+  await prefs.setString('prevMemberNo', memberNo);
 }
 
 void unsubscribeAllTopics() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   String? prevClubNo = prefs.getString('prevClubNo');
   String? prevRegionNo = prefs.getString('prevRegionNo');
+  String? prevMemberNo = prefs.getString('prevMemberNo');
   FirebaseMessaging messaging = FirebaseMessaging.instance;
 
   if (prevClubNo != null) {
@@ -90,9 +104,13 @@ void unsubscribeAllTopics() async {
   if (prevRegionNo != null) {
     await messaging.unsubscribeFromTopic('region_$prevRegionNo');
   }
-  // 저장값 초기화
+  if (prevMemberNo != null) {
+    await messaging.unsubscribeFromTopic('member_$prevMemberNo');
+  }
+
   await prefs.remove('prevClubNo');
   await prefs.remove('prevRegionNo');
+  await prefs.remove('prevMemberNo');
 }
 
 class MyHttpOverrides extends HttpOverrides {
@@ -175,9 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
             _clubName = data['clubname'].toString();
             _errorMessage = '';
           });
-
           //메세지 토픽호출
-          subscribeToTopics(_mregionNo, _clubNo);
+          subscribeToTopics(_mregionNo, _clubNo, _memberNo);
 
           Navigator.pushReplacementNamed(
             context,
@@ -447,6 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       'mregionNo': mregionNo,
                       'mclubNo': mclubNo,
                       'mfuncNo': mfuncNo,
+                      'memberNo': memberNo,
                     },
                   );
                 },
@@ -573,6 +591,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       arguments: {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
+                        'memberNo': memberNo,
+                        'mfuncNo': mfuncNo, // 추가!
+                        'clubName': clubName, // 필요시
                       },
                     );
                   } else {
