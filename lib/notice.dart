@@ -38,7 +38,7 @@ class NoticeScreen extends StatelessWidget {
             ? (mfuncNo == '1'
             ? NoticeListWidget(
           title: '클럽 공지',
-          future: fetchClubDocs(mclubNo: mclubNo),
+          future: fetchClubDocs(mclubNo: mclubNo, memberNo: mmemberNo),
           noticeType: 'CLUB',
           memberNo: mmemberNo,
           mfuncNo: mfuncNo,

@@ -133,7 +133,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No members found'));
                   } else {
-                    return ListView.builder(
+                    return InteractiveViewer(
+                        panEnabled: true,
+                        scaleEnabled: true,
+                        minScale: 0.8,
+                        maxScale: 3.0,
+                        child: ListView.builder(
                       itemCount: _filteredMembers.length,
                       itemBuilder: (context, index) {
                         final member = _filteredMembers[index];
@@ -189,6 +194,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                           ),
                         );
                       },
+                        ),
                     );
                   }
                 },

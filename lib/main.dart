@@ -8,6 +8,7 @@ import 'clubdocs.dart';
 import 'docviewer.dart';
 import 'settings.dart';
 import 'request.dart';
+import 'circlelist.dart';
 import 'notice.dart';
 import 'clubmemberlist.dart';
 import 'noticeviewer.dart';
@@ -23,6 +24,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
+
+Future<List<dynamic>> fetchCircleList(String memberNo) async {
+  try {
+    final response = await http.get(
+      Uri.parse('${ApiConf.baseUrl}/phapp/getmycircle/$memberNo'),
+    );
+    if (response.statusCode == 200) {
+      final decodedBody = utf8.decode(response.bodyBytes);
+      final data = jsonDecode(decodedBody);
+      if (data is Map && data.containsKey('circles')) {
+        final circles = data['circles'];
+        if (circles is List) {
+          return circles;
+        }
+      }
+    }
+  } catch (e) {
+    print('써클 리스트 조회 오류: $e');
+  }
+  return [];
+}
+
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
@@ -134,6 +157,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/': (context) => HomeScreen(),
         '/clubList': (context) => ClubListScreen(),
+        '/circleList': (context) => CircleListScreen(),
         '/search': (context) => MemberSearchScreen(),
         '/rankMembers': (context) => RankMemberScreen(),
         '/clubDocs': (context) => ClubDocsScreen(),
@@ -277,6 +301,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<dynamic> _circleList = [];
+  bool _circleLoaded = false;
+
   @override
   void initState() {
     super.initState();
@@ -304,7 +331,24 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final String? memberNo = args?['memberNo'];
+      if (memberNo != null && memberNo.isNotEmpty) {
+        final list = await fetchCircleList(memberNo);
+        setState(() {
+          _circleList = list;
+          _circleLoaded = true;
+        });
+      } else {
+        setState(() {
+          _circleLoaded = true;
+        });
+      }
+    });
   }
+
   @override
   Widget build(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -321,30 +365,51 @@ class _HomeScreenState extends State<HomeScreen> {
           (mfuncNo == '1')
               ? ((mclubNo != null && mclubNo.isNotEmpty)
               ? '$clubName 주소록'
-              : '$clubName 주소록 로그인 만료')
+              : '$clubName 주소록 로그아웃')
               : ((mregionNo != null && mregionNo.isNotEmpty)
               ? '$mregionNo 지역 회원 주소록'
-              : '지역주소록 로그인 만료'),
+              : '지역주소록 로그아웃'),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.assignment_add),
-            onPressed: () {
-              if (mclubNo != null) {
-                Navigator.pushNamed(
-                  context,
-                  '/request',
-                  arguments: memberNo,
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
-                );
-                Future.delayed(Duration(seconds: 2), () {
-                  Navigator.pushReplacementNamed(context, '/login');
-                });
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert), // 더보기 아이콘
+            onSelected: (value) {
+              if (value == 'request') {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/request',
+                    arguments: memberNo,
+                  );
+                } else {
+                  _showSessionExpired(context);
+                }
+              } else if (value == 'setting') {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(
+                    context,
+                    '/setting',
+                    arguments: {
+                      'clubNo': mclubNo,
+                      'memberNo': memberNo,
+                      'mfuncNo': mfuncNo,
+                    },
+                  );
+                } else {
+                  _showSessionExpired(context);
+                }
               }
             },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'request',
+                child: Text('데이터수정 요청하기'),
+              ),
+              PopupMenuItem(
+                value: 'setting',
+                child: Text('설정변경'),
+              ),
+            ],
           ),
         ],
       ),
@@ -381,16 +446,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         return Image.asset(
                           'assets/loginlogo.png',
                           width: double.infinity,
-                          height: 400,
-                          fit: BoxFit.cover,
+                          height: 300,
+                          fit: BoxFit.contain,
                         );
                       },
                     )
                         : Image.asset(
                       'assets/loginlogo.png',
                       width: double.infinity,
-                      height: 400,
-                      fit: BoxFit.cover,
+                      height: 300,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -411,8 +476,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   List<Widget> _buildButtons(BuildContext context, String? mfuncNo, String? mclubNo, String? mregionNo, String? memberNo, String? clubName) {
+    List<Widget> widgets = [];
+    // 기존 버튼들
     if (mfuncNo == '1') {
-      return [
+      widgets.addAll([
         Row(
           children: [
             Expanded(
@@ -472,28 +539,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/setting',
-                    arguments: {
-                      'clubNo': mclubNo,
-                      'memberNo': memberNo,
-                      'mfuncNo': mfuncNo,
-                    },
-                  );
-                },
-                child: Text('설정', maxLines: 1, overflow: TextOverflow.ellipsis),
+            if (_circleList.isNotEmpty)
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/circleList',
+                      arguments: {
+                        'memberNo': memberNo,
+                      },
+                    );
+                  },
+                  child: Text('써클 목록'),
+                ),
               ),
-            ),
           ],
         ),
-      ];
+      ]);
     } else {
-      // 기본: 기존 8개 버튼(2x4)
-      return [
+      widgets.addAll([
         Row(
           children: [
             Expanded(
@@ -604,30 +669,26 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
+            if (_circleList.isNotEmpty)
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
                     Navigator.pushNamed(
                       context,
-                      '/setting',
+                      '/circleList',
                       arguments: {
-                        'clubNo': mclubNo,
                         'memberNo': memberNo,
-                        'mfuncNo': mfuncNo,
                       },
                     );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: Text('설정', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  },
+                  child: Text('써클 목록'),
+                ),
               ),
-            ),
           ],
         ),
-      ];
+      ]);
     }
+    return widgets;
   }
 
   void _showSessionExpired(BuildContext context) {

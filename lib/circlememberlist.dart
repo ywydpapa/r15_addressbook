@@ -9,12 +9,14 @@ class Member {
   final String memberName;
   final String memberPhone;
   final String rankTitle;
+  final String clubName;
 
   Member({
     required this.memberNo,
     required this.memberName,
     required this.memberPhone,
     required this.rankTitle,
+    required this.clubName,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -22,23 +24,30 @@ class Member {
       memberNo: json['memberNo'],
       memberName: json['memberName'],
       memberPhone: json['memberPhone'] ?? '',
-      rankTitle: json['rankTitle'] ?? '',
+      rankTitle: json['rankTitlekor'] ?? '',
+      clubName: json['clubName'] ?? '',
     );
   }
 }
 
-class ClubMemberListScreen extends StatefulWidget {
-  const ClubMemberListScreen({super.key});
+class CircleMemberListScreen extends StatefulWidget {
+  final int circleNo;
+  final String circleName;
+
+  const CircleMemberListScreen({
+    super.key,
+    required this.circleNo,
+    required this.circleName,
+  });
 
   @override
-  _ClubMemberListScreenState createState() => _ClubMemberListScreenState();
+  _CircleMemberListScreenState createState() => _CircleMemberListScreenState();
 }
 
-class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
-  late int clubNo;
-  late String clubName;
-  String? mclubNo;
 
+class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
+  late int circleNo;
+  late String circleName;
   late Future<List<Member>> _memberList;
   List<Member> _allMembers = [];
   List<Member> _filteredMembers = [];
@@ -50,15 +59,14 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_initialized) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-      clubNo = int.parse(args['clubNo']);
-      clubName = args['clubName'];
-      mclubNo = args['mclubNo'];
-      _memberList = fetchClubMemberList(clubNo);
+      circleNo = widget.circleNo;
+      circleName = widget.circleName;
+      _memberList = fetchCircleMemberList(circleNo);
       _searchController.addListener(_filterMembers);
       _initialized = true;
     }
   }
+
 
   @override
   void dispose() {
@@ -66,14 +74,14 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
     super.dispose();
   }
 
-  Future<List<Member>> fetchClubMemberList(int clubNo) async {
+  Future<List<Member>> fetchCircleMemberList(int circleNo) async {
     final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/memberList/$clubNo'),
+      Uri.parse('${ApiConf.baseUrl}/phapp/getcirclemembers/$circleNo'),
     );
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
-      List<dynamic> members = data['members'];
+      List<dynamic> members = data['cmembers'];
       List<Member> memberList =
       members.map((json) => Member.fromJson(json)).toList();
 
@@ -103,7 +111,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
-        title: Text('$clubName 회원 목록'),
+        title: Text('$circleName 회원 목록'),
       ),
       backgroundColor: Colors.yellow,
       body: SafeArea(
@@ -171,7 +179,19 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                                   ),
                                 ),
                               ),
-                              title: Text(member.memberName),
+                              title: Row(
+                                children: [
+                                  Text(member.memberName),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    '(${member.clubName})',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -188,7 +208,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                                     builder: (context) => MemberDetailScreen(
                                       memberNo: member.memberNo,
                                       memberName: member.memberName,
-                                      mclubNo: mclubNo,
+                                      mclubNo: '42',
                                     ),
                                   ),
                                 );

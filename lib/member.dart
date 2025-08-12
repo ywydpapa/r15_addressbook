@@ -158,7 +158,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   TableRow _buildTableRow(String label, String value, {bool isPhone = false}) {
     Widget valueWidget = Text(
       value,
-      style: TextStyle(fontSize: 12, color: isPhone ? Colors.blue : Colors.black),
+      style: TextStyle(fontSize: 18, color: isPhone ? Colors.blue : Colors.black),
     );
 
     if (isPhone && value != '정보 없음') {
@@ -181,7 +181,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          child: Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
@@ -211,35 +211,41 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     final String? mclubNo = widget.mclubNo;
     return Scaffold(
       appBar: AppBar(title: Text('회원 상세 정보')),
-      body: SafeArea(
-        child: FutureBuilder<Memberdtl>(
-          future: _memberDetail,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            } else if (!snapshot.hasData) {
-              return Center(child: Text('No data found'));
-            } else {
-              final member = snapshot.data!;
-              List<Widget> pages = [
-                _buildMemberInfoPage(member),
-                _buildNameCardPage(member),
-              ];
+      body: InteractiveViewer(
+        panEnabled: true, // 드래그로 이동 가능
+        scaleEnabled: true, // 핀치로 확대/축소 가능
+        minScale: 1.0, // 최소 1배
+        maxScale: 3.0, // 최대 3배
+        child: SafeArea(
+          child: FutureBuilder<Memberdtl>(
+            future: _memberDetail,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              } else if (!snapshot.hasData) {
+                return Center(child: Text('No data found'));
+              } else {
+                final member = snapshot.data!;
+                List<Widget> pages = [
+                  _buildMemberInfoPage(member),
+                  _buildNameCardPage(member),
+                ];
 
-              if (member.clubNo != null && mclubNo != null && member.clubNo.toString() == mclubNo.toString())
-              {
-                pages.add(_buildSpouseInfoPage(member));
+                if (member.clubNo != null && mclubNo != null && member.clubNo.toString() == mclubNo.toString()) {
+                  pages.add(_buildSpouseInfoPage(member));
+                }
+
+                return PageView(children: pages);
               }
-
-              return PageView(children: pages);
-            }
-          },
+            },
+          ),
         ),
       ),
     );
   }
+
 
   Widget _buildMemberInfoPage(Memberdtl member) {
     return SingleChildScrollView(
@@ -279,7 +285,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   _buildTableRow('연락처', member.memberPhone, isPhone: true),
                   _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
                   _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
-                  _buildTableRow('추가 기재 사항', member.addMemo ?? '없음'),
+                  _buildTableRow('추가기재', member.addMemo ?? '없음'),
                 ],
               ),
             ),

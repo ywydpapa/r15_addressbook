@@ -177,77 +177,82 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                   ? Center(child: Text(_errorMsg!))
                   : _filteredMembers.isEmpty
                   ? Center(child: Text('No members found'))
-                  : ListView.builder(
-                itemCount: _filteredMembers.length,
-                itemBuilder: (context, index) {
-                  final member = _filteredMembers[index];
-                  final imageUrl =
-                      '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                  : InteractiveViewer(
+                panEnabled: true,     // 드래그로 이동 가능
+                scaleEnabled: true,   // 핀치 줌 가능
+                minScale: 0.8,
+                maxScale: 3.0,
+                child: ListView.builder(
+                  itemCount: _filteredMembers.length,
+                  itemBuilder: (context, index) {
+                    final member = _filteredMembers[index];
+                    final imageUrl =
+                        '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
 
-                  return Card(
-                    margin: EdgeInsets.all(8.0),
-                    child: ListTile(
-                      leading: Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          color: Colors.grey[200],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Image.asset(
-                                'assets/default.png',
-                                fit: BoxFit.cover,
-                              );
-                            },
+                    return Card(
+                      margin: EdgeInsets.all(8.0),
+                      child: ListTile(
+                        leading: Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.grey[200],
                           ),
-                        ),
-                      ),
-                      title: Row(
-                        children: [
-                          Text(member.memberName),
-                          SizedBox(width: 8),
-                          Text(
-                            '(${member.clubName})',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/default.png',
+                                  fit: BoxFit.cover,
+                                );
+                              },
                             ),
                           ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('직책: ${member.rankTitle}'),
-                          Text(
-                            '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        // 필요시 상세화면 구현
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => MemberDetailScreen(
-                              memberNo: member.memberNo,
-                              memberName: member.memberName,
-                              mclubNo: mclubNo,
+                        ),
+                        title: Row(
+                          children: [
+                            Text(member.memberName),
+                            SizedBox(width: 8),
+                            Text(
+                              '(${member.clubName})',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('직책: ${member.rankTitle}'),
+                            Text(
+                              '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MemberDetailScreen(
+                                memberNo: member.memberNo,
+                                memberName: member.memberName,
+                                mclubNo: mclubNo,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
+            )
           ],
         ),
       ),
