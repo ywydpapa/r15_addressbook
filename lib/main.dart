@@ -19,6 +19,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -308,6 +309,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
+    _checkForUpdate();
+
     // 포그라운드에서 메시지 수신 시 알림 띄우기
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
@@ -347,6 +350,17 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     });
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final updateInfo = await InAppUpdate.checkForUpdate();
+      if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+        await InAppUpdate.performImmediateUpdate();
+      }
+    } catch (e) {
+      print('인앱 업데이트 오류: $e');
+    }
   }
 
   @override
