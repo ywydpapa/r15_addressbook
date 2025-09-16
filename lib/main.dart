@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'clublist.dart';
 import 'searchresult.dart';
+import 'clubsearchresult.dart';
 import 'rankmember.dart';
 import 'clubdocs.dart';
 import 'docviewer.dart';
@@ -159,6 +160,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => HomeScreen(),
         '/clubList': (context) => ClubListScreen(),
         '/circleList': (context) => CircleListScreen(),
+        '/csearch': (context) => CMemberSearchScreen(),
         '/search': (context) => MemberSearchScreen(),
         '/rankMembers': (context) => RankMemberScreen(),
         '/clubDocs': (context) => ClubDocsScreen(),
@@ -517,17 +519,18 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  if (mclubNo != null) {
                     Navigator.pushNamed(
                       context,
-                      '/clubDocs',
-                      arguments: mclubNo,
+                      '/csearch',
+                      arguments: {
+                        'mregionNo': mregionNo,
+                        'mclubNo': mclubNo,
+                        'mfuncNo': mfuncNo,
+                        'memberNo': memberNo,
+                      },
                     );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: Text('클럽문서목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  },
+                  child: Text('$clubName 클럽회원검색', maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
             ),
           ],
@@ -553,6 +556,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  if (mclubNo != null) {
+                    Navigator.pushNamed(
+                      context,
+                      '/clubDocs',
+                      arguments: mclubNo,
+                    );
+                  } else {
+                    _showSessionExpired(context);
+                  }
+                },
+                child: Text('클럽 문서 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
             if (_circleList.isNotEmpty)
               Expanded(
                 child: ElevatedButton(
