@@ -61,7 +61,6 @@ void main() async {
   }
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   FirebaseMessaging messaging = FirebaseMessaging.instance;
-  HttpOverrides.global = MyHttpOverrides(); //테스트용 우회 설정
   NotificationSettings settings = await messaging.requestPermission();
   SystemChrome.setSystemUIOverlayStyle(
     SystemUiOverlayStyle(
@@ -75,8 +74,8 @@ void main() async {
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
   final DarwinInitializationSettings initializationSettingsIOS =
-  DarwinInitializationSettings(); // iOS용 설정 추가
 
+  DarwinInitializationSettings(); // iOS용 설정 추가
   final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
     iOS: initializationSettingsIOS, // 반드시 추가!
@@ -106,11 +105,9 @@ void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   if (prevMemberNo != null && prevMemberNo != memberNo) {
     await messaging.unsubscribeFromTopic('member_$prevMemberNo');
   }
-
   await messaging.subscribeToTopic(clubTopic);
   await messaging.subscribeToTopic(regionTopic);
   await messaging.subscribeToTopic(memberTopic);
-
   await prefs.setString('prevClubNo', clubNo);
   await prefs.setString('prevRegionNo', regionNo);
   await prefs.setString('prevMemberNo', memberNo);
@@ -142,7 +139,7 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback = (X509Certificate cert, String host, int port) => false;
   }
 }
 
