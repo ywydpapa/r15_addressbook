@@ -17,7 +17,7 @@ dependencies {
 
 android {
     namespace = "kr.swcore.r15_addressbook"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973" // 플러그인이 요구하는 NDK 버전
 
     compileOptions {

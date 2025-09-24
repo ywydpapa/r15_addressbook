@@ -15,13 +15,12 @@ import 'clubmemberlist.dart';
 import 'noticeviewer.dart';
 import 'config/api_config.dart';
 import 'dart:io';
-import 'package:flutter/services.dart'; // 추가
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:in_app_update/in_app_update.dart';
-
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -48,7 +47,6 @@ Future<List<dynamic>> fetchCircleList(String memberNo) async {
   return [];
 }
 
-
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
@@ -61,27 +59,27 @@ void main() async {
   }
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   FirebaseMessaging messaging = FirebaseMessaging.instance;
-  NotificationSettings settings = await messaging.requestPermission();
+  await messaging.requestPermission();
   SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
+    const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       systemNavigationBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  // Android 및 iOS 초기화 설정 추가
+
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
   final DarwinInitializationSettings initializationSettingsIOS =
-
-  DarwinInitializationSettings(); // iOS용 설정 추가
+  const DarwinInitializationSettings();
   final InitializationSettings initializationSettings = InitializationSettings(
     android: initializationSettingsAndroid,
-    iOS: initializationSettingsIOS, // 반드시 추가!
+    iOS: initializationSettingsIOS,
   );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-  runApp(MyApp());
+
+  runApp(const MyApp());
 }
 
 void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
@@ -105,9 +103,11 @@ void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   if (prevMemberNo != null && prevMemberNo != memberNo) {
     await messaging.unsubscribeFromTopic('member_$prevMemberNo');
   }
+
   await messaging.subscribeToTopic(clubTopic);
   await messaging.subscribeToTopic(regionTopic);
   await messaging.subscribeToTopic(memberTopic);
+
   await prefs.setString('prevClubNo', clubNo);
   await prefs.setString('prevRegionNo', regionNo);
   await prefs.setString('prevMemberNo', memberNo);
@@ -139,7 +139,8 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => false;
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => false;
   }
 }
 
@@ -153,36 +154,38 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       initialRoute: '/login',
       routes: {
-        '/login': (context) => LoginScreen(),
-        '/': (context) => HomeScreen(),
-        '/clubList': (context) => ClubListScreen(),
-        '/circleList': (context) => CircleListScreen(),
-        '/csearch': (context) => CMemberSearchScreen(),
-        '/search': (context) => MemberSearchScreen(),
-        '/rankMembers': (context) => RankMemberScreen(),
-        '/clubDocs': (context) => ClubDocsScreen(),
-        '/docViewer': (context) => DocViewerScreen(),
-        '/noticeViewer': (context) => NoticeViewerScreen(),
-        '/request': (context) => RequestScreen(),
-        '/setting': (context) => SettingScreen(),
-        '/notice': (context) => NoticeScreen(),
-        '/cmList': (context) => ClubMemberListScreen(),
-      }
+        '/login': (context) => const LoginScreen(),
+        '/': (context) => const HomeScreen(),
+        '/clubList': (context) => const ClubListScreen(),
+        '/circleList': (context) => const CircleListScreen(),
+        // 이하 다른 화면 라우트는 기존처럼...
+        '/csearch': (context) => const CMemberSearchScreen(),
+        '/search': (context) => const MemberSearchScreen(),
+        '/rankMembers': (context) => const RankMemberScreen(),
+        '/clubDocs': (context) => const ClubDocsScreen(),
+        '/docViewer': (context) => const DocViewerScreen(),
+        '/noticeViewer': (context) => const NoticeViewerScreen(),
+        '/request': (context) => const RequestScreen(),
+        '/setting': (context) => const SettingScreen(),
+        '/notice': (context) => const NoticeScreen(),
+        '/cmList': (context) => const ClubMemberListScreen(),
+      },
     );
   }
 }
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
+
+  // 로그인 후 전달용 (원 코드 유지)
   String _clubNo = '';
   String _memberNo = '';
   String _mregionNo = '';
@@ -190,24 +193,20 @@ class _LoginScreenState extends State<LoginScreen> {
   String _clubName = '';
 
   Future<void> _login() async {
-    final phoneno = _usernameController.text;
-
+    final phoneno = _usernameController.text.trim();
     if (phoneno.isEmpty) {
       setState(() {
         _errorMessage = '전화번호를 입력하세요.';
       });
       return;
     }
-
     try {
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
       );
       final decodedBody = utf8.decode(response.bodyBytes);
-
       if (response.statusCode == 200) {
         final data = jsonDecode(decodedBody);
-
         if (data.containsKey('clubno')) {
           setState(() {
             _clubNo = data['clubno'].toString();
@@ -217,9 +216,8 @@ class _LoginScreenState extends State<LoginScreen> {
             _clubName = data['clubname'].toString();
             _errorMessage = '';
           });
-          //메세지 토픽호출
           subscribeToTopics(_mregionNo, _clubNo, _memberNo);
-
+          if (!mounted) return;
           Navigator.pushReplacementNamed(
             context,
             '/',
@@ -255,38 +253,96 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.yellow,
       appBar: AppBar(
         backgroundColor: Colors.yellow,
-        title: Text('국제라이온스협회 355-A지구 지역주소록'),
+        title: const Text('국제라이온스협회 355-A지구 지역주소록'),
+        elevation: 0,
       ),
-      backgroundColor: Colors.yellow,
-      body: SafeArea( // <-- SafeArea로 감싸기
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/loginlogo.png',
-                width: 300,
-                height: 300,
-              ),
-              SizedBox(height: 8),
-              TextField(
-                controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: '전화번호',
-                  border: OutlineInputBorder(),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewInsets = MediaQuery.of(context).viewInsets; // 키보드 높이
+            final bottomPad = 24.0 + viewInsets.bottom;
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(20, 32, 20, bottomPad),
+                keyboardDismissBehavior:
+                ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 32,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 로고 + 타이틀
+                      LayoutBuilder(
+                        builder: (ctx, c) {
+                          final maxLogoSide =
+                              (c.maxWidth).clamp(0, 420) * 0.7;
+                          return Column(
+                            children: [
+                              Image.asset(
+                                'assets/loginlogo.png',
+                                width: maxLogoSide,
+                                height: maxLogoSide,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 40),
+                      TextField(
+                        controller: _usernameController,
+                        decoration: const InputDecoration(
+                          labelText: '전화번호',
+                          hintText: '숫자만 입력',
+                          border: OutlineInputBorder(),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        onSubmitted: (_) => _login(),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_errorMessage.isNotEmpty)
+                        Text(
+                          _errorMessage,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: _login,
+                          style: ElevatedButton.styleFrom(
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          child: const Text('로그인'),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Opacity(
+                        opacity: 0.7,
+                      ),
+                    ],
+                  ),
                 ),
-                keyboardType: TextInputType.phone,
               ),
-              SizedBox(height: 8),
-              if (_errorMessage.isNotEmpty)
-                Text(_errorMessage, style: TextStyle(color: Colors.red)),
-              SizedBox(height: 8),
-              ElevatedButton(onPressed: _login, child: Text('로그인')),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -307,22 +363,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-
     _checkForUpdate();
 
-    // 포그라운드에서 메시지 수신 시 알림 띄우기
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
       AndroidNotification? android = message.notification?.android;
-
       if (notification != null && android != null) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
           notification.body,
-          NotificationDetails(
+          const NotificationDetails(
             android: AndroidNotificationDetails(
-              'fcm_default_channel', // 반드시 AndroidManifest.xml에도 등록되어야 함
+              'fcm_default_channel',
               '알림',
               channelDescription: '앱 알림',
               importance: Importance.max,
@@ -335,18 +388,23 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args = ModalRoute.of(context)?.settings.arguments
+      as Map<String, dynamic>?;
       final String? memberNo = args?['memberNo'];
       if (memberNo != null && memberNo.isNotEmpty) {
         final list = await fetchCircleList(memberNo);
-        setState(() {
-          _circleList = list;
-          _circleLoaded = true;
-        });
+        if (mounted) {
+          setState(() {
+            _circleList = list;
+            _circleLoaded = true;
+          });
+        }
       } else {
-        setState(() {
-          _circleLoaded = true;
-        });
+        if (mounted) {
+          setState(() {
+            _circleLoaded = true;
+          });
+        }
       }
     });
   }
@@ -354,7 +412,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkForUpdate() async {
     try {
       final updateInfo = await InAppUpdate.checkForUpdate();
-      if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
+      if (updateInfo.updateAvailability ==
+          UpdateAvailability.updateAvailable) {
         await InAppUpdate.performImmediateUpdate();
       }
     } catch (e) {
@@ -364,7 +423,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)?.settings.arguments
+    as Map<String, dynamic>?;
     final String? mclubNo = args?['clubNo'];
     final String? memberNo = args?['memberNo'];
     final String? mregionNo = args?['regionNo'];
@@ -385,7 +445,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert), // 더보기 아이콘
+            icon: const Icon(Icons.more_vert),
             onSelected: (value) {
               if (value == 'request') {
                 if (mclubNo != null) {
@@ -413,7 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             },
-            itemBuilder: (context) => [
+            itemBuilder: (context) => const [
               PopupMenuItem(
                 value: 'request',
                 child: Text('데이터수정 요청하기'),
@@ -432,7 +492,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -443,7 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Colors.grey.withAlpha((0.5 * 255).toInt()),
                         blurRadius: 5,
                         spreadRadius: 2,
-                        offset: Offset(0, 3),
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
@@ -473,24 +534,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: _buildButtons(context, mfuncNo, mclubNo, mregionNo, memberNo, clubName),
+                  children: _buildButtons(
+                    context,
+                    mfuncNo,
+                    mclubNo,
+                    mregionNo,
+                    memberNo,
+                    clubName,
+                  ),
                 ),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
             ],
           ),
         ),
       ),
     );
   }
-  List<Widget> _buildButtons(BuildContext context, String? mfuncNo, String? mclubNo, String? mregionNo, String? memberNo, String? clubName) {
+
+  List<Widget> _buildButtons(
+      BuildContext context,
+      String? mfuncNo,
+      String? mclubNo,
+      String? mregionNo,
+      String? memberNo,
+      String? clubName,
+      ) {
     List<Widget> widgets = [];
-    // 기존 버튼들
     if (mfuncNo == '1') {
       widgets.addAll([
         Row(
@@ -509,30 +584,38 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   );
                 },
-                child: Text('$clubName 회원목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  '$clubName 회원목록',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/csearch',
-                      arguments: {
-                        'mregionNo': mregionNo,
-                        'mclubNo': mclubNo,
-                        'mfuncNo': mfuncNo,
-                        'memberNo': memberNo,
-                      },
-                    );
-                  },
-                  child: Text('$clubName 클럽회원검색', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Navigator.pushNamed(
+                    context,
+                    '/csearch',
+                    arguments: {
+                      'mregionNo': mregionNo,
+                      'mclubNo': mclubNo,
+                      'mfuncNo': mfuncNo,
+                      'memberNo': memberNo,
+                    },
+                  );
+                },
+                child: Text(
+                  '$clubName 클럽회원검색',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
@@ -549,10 +632,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                   );
                 },
-                child: Text('$clubName 공지사항', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: Text(
+                  '$clubName 공지사항',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
@@ -566,12 +653,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('클럽 문서 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '클럽 문서 목록',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             if (_circleList.isNotEmpty)
@@ -586,7 +677,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     );
                   },
-                  child: Text('써클 목록'),
+                  child: const Text('써클 목록'),
                 ),
               ),
           ],
@@ -599,7 +690,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  if (mclubNo != null){
+                  if (mclubNo != null) {
                     Navigator.pushNamed(
                       context,
                       '/clubList',
@@ -612,14 +703,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('클럽별 회원 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '클럽별 회원 목록',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  if (mclubNo != null){
+                  if (mclubNo != null) {
                     Navigator.pushNamed(
                       context,
                       '/rankMembers',
@@ -632,18 +727,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('직책별 회원 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '직책별 회원 목록',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  if (mclubNo != null){
+                  if (mclubNo != null) {
                     Navigator.pushNamed(
                       context,
                       '/search',
@@ -656,10 +755,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('키워드 회원 검색', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '키워드 회원 검색',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
@@ -673,18 +776,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('클럽 문서 목록', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '클럽 문서 목록',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: 10),
+        const SizedBox(height: 10),
         Row(
           children: [
             Expanded(
               child: ElevatedButton(
                 onPressed: () {
-                  if (mclubNo!= null){
+                  if (mclubNo != null) {
                     Navigator.pushNamed(
                       context,
                       '/notice',
@@ -692,18 +799,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
                         'memberNo': memberNo,
-                        'mfuncNo': mfuncNo, // 추가!
-                        'clubName': clubName, // 필요시
+                        'mfuncNo': mfuncNo,
+                        'clubName': clubName,
                       },
                     );
                   } else {
                     _showSessionExpired(context);
                   }
                 },
-                child: Text('공지사항', maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: const Text(
+                  '공지사항',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             if (_circleList.isNotEmpty)
               Expanded(
                 child: ElevatedButton(
@@ -716,7 +827,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     );
                   },
-                  child: Text('써클 목록'),
+                  child: const Text('써클 목록'),
                 ),
               ),
           ],
@@ -728,11 +839,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showSessionExpired(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
+      const SnackBar(content: Text('로그인세션이 만료되었습니다. 다시 로그인해야 합니다.')),
     );
-    unsubscribeAllTopics();//알림 받기 해제
-    Future.delayed(Duration(seconds: 2), () {
-      Navigator.pushReplacementNamed(context, '/login');
+    unsubscribeAllTopics();
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
   }
 }
