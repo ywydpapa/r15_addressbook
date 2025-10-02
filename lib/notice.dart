@@ -44,8 +44,8 @@ class NoticeScreen extends StatelessWidget {
           mfuncNo: mfuncNo,
         )
             : NoticeTabWidget(
-          mregionNo: mregionNo!,
-          mclubNo: mclubNo!,
+          mregionNo: mregionNo,
+          mclubNo: mclubNo,
           mfuncNo: mfuncNo,
           mmemberNo: mmemberNo,
         ))
