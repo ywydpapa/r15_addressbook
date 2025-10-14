@@ -23,6 +23,10 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
   bool isLoading = true;
   bool _argsLoaded = false;
 
+  final double _minScale = 0.8; // 필요에 따라 1.0으로 시작해도 됩니다.
+  final double _maxScale = 3.0;
+
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -253,33 +257,73 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
     );
   }
 
+  // 2) 핀치 줌 전용 HTML 빌더
+  Widget _buildHtmlContentZoomOnly() {
+    return InteractiveViewer(
+      minScale: _minScale,
+      maxScale: _maxScale,
+      panEnabled: false,   // 팬(드래그 이동) 비활성화
+      scaleEnabled: true,  // 핀치 줌만 허용
+      child: _buildHtmlContent(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            htmlTitle,
-            style: const TextStyle(color: Colors.black),
-          ),
-          backgroundColor: Colors.yellow,
-          centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.black),
+      appBar: AppBar(
+        title: Text(
+          htmlTitle,
+          style: const TextStyle(color: Colors.black),
         ),
-        body: SafeArea(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        backgroundColor: Colors.yellow,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: SafeArea(
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
               children: [
-                _buildTopButtons(),
-                _buildHtmlContent(),
-                const SizedBox(height: 20),
+                // 상단 버튼 영역 유지(필요 없다면 제거 가능)
+                if (answerType == 'ATTYN' || answerType == 'AGREE')
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                    child: _buildTopButtons(),
+                  ),
+                // 아래 남은 전체 영역을 뷰어로 사용
+                Expanded(
+                  child: Container(
+                    color: Colors.white, // 필요시 배경색
+                    child: InteractiveViewer(
+                      minScale: 1.0,      // 확대만 원하면 1.0으로 설정 권장
+                      maxScale: 3.0,
+                      panEnabled: true,   // 확대 후 드래그 이동
+                      scaleEnabled: true, // 핀치 줌
+                      clipBehavior: Clip.none,
+                      boundaryMargin: const EdgeInsets.all(48),
+                      child: Align(
+                        // 확대 기준 자연스럽게(좌상단/중앙 등 필요에 따라 조정)
+                        alignment: Alignment.topLeft,
+                        // 콘텐츠가 제약을 명확히 알도록 너비를 화면에 맞춤
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                            maxWidth: constraints.maxWidth,
+                          ),
+                          child: _buildHtmlContent(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
+            );
+          },
         ),
-        );
-    }
+      ),
+    );
+  }
 }
