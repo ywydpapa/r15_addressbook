@@ -304,17 +304,15 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
                       scaleEnabled: true, // 핀치 줌
                       clipBehavior: Clip.none,
                       boundaryMargin: const EdgeInsets.all(48),
-                      child: Align(
-                        // 확대 기준 자연스럽게(좌상단/중앙 등 필요에 따라 조정)
-                        alignment: Alignment.topLeft,
-                        // 콘텐츠가 제약을 명확히 알도록 너비를 화면에 맞춤
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth,
-                            maxWidth: constraints.maxWidth,
-                          ),
-                          child: _buildHtmlContent(),
-                        ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SizedBox(
+                            width: constraints.maxWidth,
+                            child: SingleChildScrollView(
+                              child: _buildHtmlContent(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),
