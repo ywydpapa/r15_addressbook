@@ -34,6 +34,7 @@ class Memberdtl {
   final String? offWeb;
   final String? offSns;
   final String? bisMemo;
+  final String? clubRank;
 
   Memberdtl({
     required this.memberNo,
@@ -65,6 +66,7 @@ class Memberdtl {
     this.offWeb,
     this.offSns,
     this.bisMemo,
+    this.clubRank,
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -106,6 +108,7 @@ class Memberdtl {
       offWeb: json['offWeb']?.toString(),
       offSns: json['offSns']?.toString(),
       bisMemo: json['bisMemo']?.toString(),
+      clubRank: json['clubRank'].toString(),
     );
   }
 }
@@ -281,7 +284,9 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 children: [
                   _buildTableRow('회원성명', member.memberName),
                   _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
-                  _buildTableRow('직책', member.rankTitle),
+                (member.clubNo?.toString() != (widget.mclubNo?.toString()))
+                  ? _buildTableRow('직책', (member.rankTitle ?? ''))
+                  : _buildTableRow('클럽직책', (member.clubRank ?? '')),
                   _buildTableRow('연락처', member.memberPhone, isPhone: true),
                   _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
                   _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
@@ -331,10 +336,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   _buildTableRow('상세업종', member.bistypeTitle ?? '없음'),
                   _buildTableRow('사무실주소', member.offAddress ?? '없음'),
                   _buildTableRow('우편번호', member.offPostNo ?? '없음'),
-                  _buildTableRow('사무실 전화번호', member.offTel ?? '없음'),
-                  _buildTableRow('업무용 이메일', member.offEmail ?? '없음'),
+                  _buildTableRow('사무실전화', member.offTel ?? '없음'),
                   _buildTableRow('웹페이지', member.offWeb ?? '없음'),
-                  _buildTableRow('업무용 SNS', member.offSns ?? '없음'),
                 ],
               ),
             ),

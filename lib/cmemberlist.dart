@@ -9,12 +9,14 @@ class Member {
   final String memberName;
   final String memberPhone;
   final String rankTitle;
+  final String clubRank;
 
   Member({
     required this.memberNo,
     required this.memberName,
     required this.memberPhone,
     required this.rankTitle,
+    required this.clubRank,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class Member {
       memberName: json['memberName'],
       memberPhone: json['memberPhone'] ?? '',
       rankTitle: json['rankTitle'] ?? '',
+      clubRank: json['clubRank'] ?? '',
     );
   }
 }
@@ -172,7 +175,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('직책: ${member.rankTitle}'),
+                                (widget.mclubNo.toString() == widget.clubNo.toString() && member.clubRank.isNotEmpty)
+                                    ? Text('클럽직책: ${member.clubRank}')
+                                    : Text('직책: ${member.rankTitle ?? ""}'),
                                 Text(
                                   '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
                                 ),

@@ -158,7 +158,6 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/clubList': (context) => const ClubListScreen(),
         '/circleList': (context) => const CircleListScreen(),
-        // 이하 다른 화면 라우트는 기존처럼...
         '/csearch': (context) => const CMemberSearchScreen(),
         '/search': (context) => const MemberSearchScreen(),
         '/rankMembers': (context) => const RankMemberScreen(),
@@ -426,6 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final args = ModalRoute.of(context)?.settings.arguments
     as Map<String, dynamic>?;
     final String? mclubNo = args?['clubNo'];
+    final String? clubNo = args?['clubNo'];
     final String? memberNo = args?['memberNo'];
     final String? mregionNo = args?['regionNo'];
     final String? mfuncNo = args?['funcNo'];
@@ -543,6 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     context,
                     mfuncNo,
                     mclubNo,
+                    clubNo,
                     mregionNo,
                     memberNo,
                     clubName,
@@ -561,6 +562,7 @@ class _HomeScreenState extends State<HomeScreen> {
       BuildContext context,
       String? mfuncNo,
       String? mclubNo,
+      String? clubNo,
       String? mregionNo,
       String? memberNo,
       String? clubName,
@@ -579,7 +581,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     arguments: {
                       'mregionNo': mregionNo,
                       'mclubNo': mclubNo,
-                      'clubNo': mclubNo,
+                      'clubNo': clubNo,
                       'clubName': clubName,
                     },
                   );
@@ -601,6 +603,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     arguments: {
                       'mregionNo': mregionNo,
                       'mclubNo': mclubNo,
+                      'clubNo': clubNo,
                       'mfuncNo': mfuncNo,
                       'memberNo': memberNo,
                     },
@@ -627,6 +630,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     arguments: {
                       'mregionNo': mregionNo,
                       'mclubNo': mclubNo,
+                      'clubNo': clubNo,
                       'mfuncNo': mfuncNo,
                       'memberNo': memberNo,
                     },
@@ -697,6 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       arguments: {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
+                        'clubNo': clubNo,
                       },
                     );
                   } else {
@@ -721,6 +726,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       arguments: {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
+                        'clubNo': clubNo,
                       },
                     );
                   } else {
@@ -749,6 +755,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       arguments: {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
+                        'clubNo': clubNo,
                       },
                     );
                   } else {
@@ -798,6 +805,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       arguments: {
                         'mregionNo': mregionNo,
                         'mclubNo': mclubNo,
+                        'clubNo': clubNo,
                         'memberNo': memberNo,
                         'mfuncNo': mfuncNo,
                         'clubName': clubName,

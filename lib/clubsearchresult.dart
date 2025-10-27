@@ -11,6 +11,7 @@ class Member {
   final String memberPhone;
   final String rankTitle;
   final String clubName;
+  final String clubRank;
 
   Member({
     required this.memberNo,
@@ -18,6 +19,7 @@ class Member {
     required this.memberPhone,
     required this.rankTitle,
     required this.clubName,
+    required this.clubRank,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -27,6 +29,7 @@ class Member {
       memberPhone: json['memberPhone'] ?? '',
       rankTitle: json['rankTitle'] ?? '',
       clubName: json['clubName'] ?? '',
+      clubRank: json['clubRank'] ?? '',
     );
   }
 }
@@ -45,6 +48,7 @@ class _CMemberSearchScreenState extends State<CMemberSearchScreen> {
   List<Member> _searchResults = [];
   int? mregionNo;
   String? mclubNo;
+  String? clubNo;
 
   @override
   void didChangeDependencies() {
@@ -58,6 +62,7 @@ class _CMemberSearchScreenState extends State<CMemberSearchScreen> {
         mregionNo = int.tryParse(regionArg);
       }
       mclubNo = args['mclubNo']?.toString();
+      clubNo = args['clubNo']?.toString();
     }
   }
 
@@ -194,7 +199,9 @@ class _CMemberSearchScreenState extends State<CMemberSearchScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('직책: ${member.rankTitle}'),
+                            (mclubNo.toString() == clubNo.toString())
+                                ? Text('클럽직책: ${member.clubRank ?? ''}')
+                                : Text('직책: ${member.rankTitle ?? ''}'),
                             Text(
                               '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
                             ),
