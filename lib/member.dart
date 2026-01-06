@@ -301,6 +301,13 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Widget _buildNameCardPage(Memberdtl member) {
+    final String bizTypeText = (member.bisType?.trim().toUpperCase() == 'SELF')
+        ? ((member.bistypeTitle?.trim().isNotEmpty == true)
+        ? member.bistypeTitle!.trim()
+        : '없음')
+        : ((member.bisType?.trim().isNotEmpty == true)
+        ? member.bisType!.trim()
+        : '없음');
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.only(top: 16.0),
@@ -332,8 +339,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   _buildTableRow('소속클럽', member.clubName ?? '없음'),
                   _buildTableRow('업체명', member.bisTitle ?? '없음'),
                   _buildTableRow('직책', member.bisRank ?? '없음'),
-                  _buildTableRow('업종', member.bisType ?? '없음'),
-                  _buildTableRow('상세업종', member.bistypeTitle ?? '없음'),
+                  _buildTableRow('업종', bizTypeText),
                   _buildTableRow('사무실주소', member.offAddress ?? '없음'),
                   _buildTableRow('우편번호', member.offPostNo ?? '없음'),
                   _buildTableRow('사무실전화', member.offTel ?? '없음'),
