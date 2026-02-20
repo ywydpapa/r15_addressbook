@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'member.dart'; // 필요시 주석 해제
+import 'membertab.dart'; // 필요시 주석 해제
 import 'config/api_config.dart';
 
 // Member 모델 정의
