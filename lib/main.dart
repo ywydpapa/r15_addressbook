@@ -144,18 +144,93 @@ class MyHttpOverrides extends HttpOverrides {
   }
 }
 
+class LaunchGate extends StatefulWidget {
+  const LaunchGate({super.key});
+
+  @override
+  State<LaunchGate> createState() => _LaunchGateState();
+}
+
+class _LaunchGateState extends State<LaunchGate> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _route());
+  }
+
+  Future<void> _route() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(kAutoLoginEnabled) ?? false;
+    final phone = (prefs.getString(kAutoLoginPhone) ?? '').trim();
+
+    if (enabled && phone.isNotEmpty) {
+      // 자동 로그인 시도
+      try {
+        final res = await http.get(
+          Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phone'),
+        );
+
+        final decodedBody = utf8.decode(res.bodyBytes);
+
+        if (res.statusCode == 200) {
+          final data = jsonDecode(decodedBody);
+
+          if (data is Map && data.containsKey('clubno')) {
+            final clubNo = data['clubno'].toString();
+            final memberNo = data['memberno'].toString();
+            final regionNo = data['regionno'].toString();
+            final funcNo = data['funcno'].toString();
+            final clubName = data['clubname'].toString();
+
+            subscribeToTopics(regionNo, clubNo, memberNo);
+
+            if (!mounted) return;
+            Navigator.pushReplacementNamed(
+              context,
+              '/home',
+              arguments: {
+                'clubNo': clubNo,
+                'memberNo': memberNo,
+                'regionNo': regionNo,
+                'funcNo': funcNo,
+                'clubName': clubName,
+              },
+            );
+            return;
+          }
+        }
+      } catch (_) {
+        // 실패 시 아래에서 로그인으로 보냄
+      }
+    }
+
+    // 자동로그인 조건이 아니거나 실패하면 로그인 화면
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Colors.yellow,
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Lions Club AddressBook for 355-A Regions',
+      title: '...',
       theme: ThemeData(primarySwatch: Colors.blue),
-      initialRoute: '/login',
+      home: const LaunchGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/': (context) => const HomeScreen(),
+        '/home': (context) => const HomeScreen(), // 여기로 변경
         '/clubList': (context) => const ClubListScreen(),
         '/circleList': (context) => const CircleListScreen(),
         '/csearch': (context) => const CMemberSearchScreen(),
@@ -219,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (!mounted) return;
           Navigator.pushReplacementNamed(
             context,
-            '/',
+            '/home',
             arguments: {
               'clubNo': _clubNo,
               'memberNo': _memberNo,

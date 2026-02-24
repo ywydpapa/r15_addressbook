@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
+
+
+const String kAutoLoginEnabled = 'autoLoginEnabled';
+const String kAutoLoginPhone = 'autoLoginPhone';
 
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
@@ -23,19 +29,84 @@ class _SettingScreenState extends State<SettingScreen> {
     '2단계 비공개: 지역회원들에게 내정보중 이름,소속, 직책, 전화번호, 추가 기재 사항만을 공개합니다.',
     '전체비공개: 지역회원들에게 내정보중 이름, 소속, 직책을 제외한 모든 정보를 비공개 합니다.',
   ];
+  bool _autoLoginEnabled = false;
+  final TextEditingController _autoLoginPhoneController = TextEditingController();
+
+  @override
+  void dispose() {
+    _autoLoginPhoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAutoLoginPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _autoLoginEnabled = prefs.getBool(kAutoLoginEnabled) ?? false;
+      _autoLoginPhoneController.text = prefs.getString(kAutoLoginPhone) ?? '';
+    });
+  }
+
+  Future<void> _setAutoLoginEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // OFF로 바꾸면 전화번호도 같이 지우고 싶으면 여기서 제거
+    if (!enabled) {
+      await prefs.setBool(kAutoLoginEnabled, false);
+      await prefs.remove(kAutoLoginPhone);
+      setState(() {
+        _autoLoginEnabled = false;
+        _autoLoginPhoneController.text = '';
+      });
+      return;
+    }
+
+    // ON으로 바꿀 때 전화번호가 없으면 경고
+    final phone = _autoLoginPhoneController.text.trim();
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('자동로그인을 켜려면 전화번호를 입력하세요.')),
+      );
+      return;
+    }
+
+    await prefs.setBool(kAutoLoginEnabled, true);
+    await prefs.setString(kAutoLoginPhone, phone);
+    setState(() => _autoLoginEnabled = true);
+  }
+
+  Future<void> _saveAutoLoginPhone() async {
+    final phone = _autoLoginPhoneController.text.trim();
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(kAutoLoginPhone, phone);
+
+    if (_autoLoginEnabled) {
+      if (phone.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('전화번호가 비어있으면 자동로그인을 사용할 수 없습니다.')),
+        );
+        await prefs.setBool(kAutoLoginEnabled, false);
+        setState(() => _autoLoginEnabled = false);
+      } else {
+        await prefs.setBool(kAutoLoginEnabled, true);
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
       if (memberNo == null) {
         memberNo = args['memberNo'];
+        _loadAutoLoginPrefs(); // 여기서 1회 로드
         if (memberNo != null) {
           _fetchSecurityLevel(memberNo!);
         }
       }
-      // 여기 추가
+
       if (args.containsKey('mfuncNo')) {
         final argFuncNo = args['mfuncNo'];
         if (argFuncNo != null) {
@@ -46,6 +117,7 @@ class _SettingScreenState extends State<SettingScreen> {
       }
     }
   }
+
 
   Future<void> _fetchSecurityLevel(String memberNo) async {
     setState(() => _isLoading = true);
@@ -205,6 +277,49 @@ class _SettingScreenState extends State<SettingScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            const SizedBox(height: 20),
+
+            Text(
+              '자동로그인',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('자동로그인 사용'),
+              value: _autoLoginEnabled,
+              onChanged: (v) async {
+                await _setAutoLoginEnabled(v);
+              },
+            ),
+
+            TextField(
+              controller: _autoLoginPhoneController,
+              decoration: const InputDecoration(
+                labelText: '자동로그인 전화번호',
+                hintText: '숫자만 입력',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onSubmitted: (_) async => _saveAutoLoginPhone(),
+            ),
+
+            const SizedBox(height: 8),
+
+            SizedBox(
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () async {
+                  await _saveAutoLoginPhone();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('자동로그인 설정이 저장되었습니다.')),
+                  );
+                },
+                child: const Text('저장'),
+              ),
+            ),
             // 알림 설정
           ],
         ),

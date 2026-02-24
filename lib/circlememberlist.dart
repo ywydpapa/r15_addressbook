@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'membertab.dart';
+import 'membertabsimple.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
@@ -339,7 +339,7 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MemberDetailScreen(
+                                    builder: (context) => MemberSimpleDetailScreen(
                                       memberNo: member.memberNo,
                                       memberName: member.memberName,
                                       mclubNo: '42',
