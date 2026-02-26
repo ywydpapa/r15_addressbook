@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "kr.swcore.r15_addressbook"
-        minSdk = 23          // ← 21에서 23으로 변경!
+        minSdk = flutter.minSdkVersion          // ← 21에서 23으로 변경!
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
