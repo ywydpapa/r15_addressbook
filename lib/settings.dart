@@ -16,7 +16,7 @@ class SettingScreen extends StatefulWidget {
 }
 class _SettingScreenState extends State<SettingScreen> {
   int _securityLevel = 0; // 0: 전체공개, 1: 1단계 비공개, 2: 2단계 비공개, 3: 전체 비공개
-  int _operationMode = 0; // 0: 지역수첩, 1: 클럽수첩
+  int _operationMode = 0; // 0: 지역수첩, 1: 클럽수첩, 2: 모입수첩
   bool _isLoading = true;
 
   String? memberNo;
@@ -247,11 +247,14 @@ class _SettingScreenState extends State<SettingScreen> {
                   Center(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        double buttonWidth = (constraints.maxWidth / 2) - 4;
+                        // 버튼 3개이므로 3등분 (간격 약간 고려)
+                        double buttonWidth = (constraints.maxWidth / 3) - 4;
+
                         return ToggleButtons(
                           isSelected: [
                             _operationMode == 0,
                             _operationMode == 1,
+                            _operationMode == 2,
                           ],
                           onPressed: (int index) async {
                             await _updateOperationMode(index);
@@ -265,9 +268,10 @@ class _SettingScreenState extends State<SettingScreen> {
                             minHeight: 48,
                             minWidth: buttonWidth,
                           ),
-                          children: [
+                          children: const [
                             Text('지역수첩', style: TextStyle(fontSize: 16)),
                             Text('클럽수첩', style: TextStyle(fontSize: 16)),
+                            Text('모임수첩', style: TextStyle(fontSize: 16)),
                           ],
                         );
                       },
