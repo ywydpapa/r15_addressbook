@@ -26,10 +26,18 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
+// 💡 수정됨: API 호출 시 저장된 토큰을 헤더에 추가
 Future<List<dynamic>> fetchCircleList(String memberNo) async {
   try {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? ''; // 저장된 토큰 불러오기
+
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/getmycircle/$memberNo'),
+      headers: {
+        'Authorization': 'Bearer $token', // 💡 헤더에 토큰 추가
+        'Content-Type': 'application/json',
+      },
     );
     if (response.statusCode == 200) {
       final decodedBody = utf8.decode(response.bodyBytes);
@@ -40,6 +48,8 @@ Future<List<dynamic>> fetchCircleList(String memberNo) async {
           return circles;
         }
       }
+    } else if (response.statusCode == 401) {
+      print('인증 오류: 토큰이 만료되었거나 유효하지 않습니다.');
     }
   } catch (e) {
     print('써클 리스트 조회 오류: $e');
@@ -133,6 +143,7 @@ void unsubscribeAllTopics() async {
   await prefs.remove('prevClubNo');
   await prefs.remove('prevRegionNo');
   await prefs.remove('prevMemberNo');
+  await prefs.remove('access_token'); // 💡 수정됨: 로그아웃 시 토큰 삭제
 }
 
 class MyHttpOverrides extends HttpOverrides {
@@ -175,7 +186,10 @@ class _LaunchGateState extends State<LaunchGate> {
         if (res.statusCode == 200) {
           final data = jsonDecode(decodedBody);
 
-          if (data is Map && data.containsKey('clubno')) {
+          // 💡 수정됨: access_token 확인 및 갱신
+          if (data is Map && data.containsKey('clubno') && data.containsKey('access_token')) {
+            await prefs.setString('access_token', data['access_token']); // 토큰 갱신
+
             final clubNo = data['clubno'].toString();
             final memberNo = data['memberno'].toString();
             final regionNo = data['regionno'].toString();
@@ -218,7 +232,6 @@ class _LaunchGateState extends State<LaunchGate> {
   }
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -230,7 +243,7 @@ class MyApp extends StatelessWidget {
       home: const LaunchGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
-        '/home': (context) => const HomeScreen(), // 여기로 변경
+        '/home': (context) => const HomeScreen(),
         '/clubList': (context) => const ClubListScreen(),
         '/circleList': (context) => const CircleListScreen(),
         '/csearch': (context) => const CMemberSearchScreen(),
@@ -259,7 +272,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
 
-  // 로그인 후 전달용 (원 코드 유지)
   String _clubNo = '';
   String _memberNo = '';
   String _mregionNo = '';
@@ -279,9 +291,15 @@ class _LoginScreenState extends State<LoginScreen> {
         Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
       );
       final decodedBody = utf8.decode(response.bodyBytes);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(decodedBody);
-        if (data.containsKey('clubno')) {
+
+        // 💡 수정됨: access_token 저장 로직 추가
+        if (data.containsKey('clubno') && data.containsKey('access_token')) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('access_token', data['access_token']); // 토큰 저장
+
           setState(() {
             _clubNo = data['clubno'].toString();
             _memberNo = data['memberno'].toString();
@@ -339,7 +357,7 @@ class _LoginScreenState extends State<LoginScreen> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final viewInsets = MediaQuery.of(context).viewInsets; // 키보드 높이
+            final viewInsets = MediaQuery.of(context).viewInsets;
             final bottomPad = 24.0 + viewInsets.bottom;
             return SafeArea(
               child: SingleChildScrollView(
@@ -353,7 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // 로고 + 타이틀
                       LayoutBuilder(
                         builder: (ctx, c) {
                           final maxLogoSide =
@@ -381,7 +398,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         textInputAction: TextInputAction.done,
                         keyboardType: TextInputType.phone,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         onSubmitted: (_) => _login(),
                       ),
                       const SizedBox(height: 12),
