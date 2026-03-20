@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'clublogo.dart';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 void main() {
   runApp(const MyApp());
@@ -67,16 +68,31 @@ class _ClubListScreenState extends State<ClubListScreen> {
   }
 
   Future<List<Club>> fetchClubList(int mregionNo) async {
-    final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/clubList/$mregionNo'),
-    );
-    if (response.statusCode == 200) {
-      final decodedResponse = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> data = json.decode(decodedResponse);
-      List<dynamic> clubs = data['clubs'];
-      return clubs.map((json) => Club.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to load club list');
+    try {
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+      final response = await http.get(
+        Uri.parse('${ApiConf.baseUrl}/phapp/clubList/$mregionNo'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decodedResponse = utf8.decode(response.bodyBytes);
+        Map<String, dynamic> data = json.decode(decodedResponse);
+        List<dynamic> clubs = data['clubs'];
+        return clubs.map((json) => Club.fromJson(json)).toList();
+      } else {
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+        throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('클럽 리스트를 불러오는 중 오류가 발생했습니다: $e');
     }
   }
 
@@ -97,7 +113,17 @@ class _ClubListScreenState extends State<ClubListScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
+              // 💡 에러 메시지를 잘 보이게 빨간색으로 가운데 정렬
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    '${snapshot.error}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                  ),
+                ),
+              );
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(child: Text('No clubs found'));
             } else {

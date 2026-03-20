@@ -3,6 +3,7 @@ import 'membertab.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class Member {
   final int memberNo;
@@ -70,9 +71,19 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
   }
 
   Future<List<Member>> fetchClubMemberList(int clubNo) async {
+    // 1. 저장된 토큰 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
+    // 2. 헤더에 토큰을 담아서 GET 요청 보내기
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/memberList/$clubNo'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
     );
+
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
@@ -87,7 +98,8 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
 
       return memberList;
     } else {
-      throw Exception('Failed to load member list');
+      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+      throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
 
@@ -135,7 +147,17 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    // 에러 메시지를 화면 중앙에 표시
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      ),
+                    );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No members found'));
                   } else {
@@ -148,8 +170,11 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                         itemCount: _filteredMembers.length,
                         itemBuilder: (context, index) {
                           final member = _filteredMembers[index];
+
+                          // 💡 썸네일 이미지 경로에 mphoto_ 추가
                           final imageUrl =
-                              '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                              '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
+
                           return Card(
                             margin: EdgeInsets.all(8.0),
                             child: ListTile(
@@ -167,7 +192,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Image.asset(
-                                        'assets/default.png',
+                                        'assets/defaultphoto.png', // 💡 기본 이미지 파일명 확인 (default.png -> defaultphoto.png)
                                         fit: BoxFit.cover,
                                       );
                                     },

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class NoticeViewerScreen extends StatefulWidget {
   const NoticeViewerScreen({super.key});
@@ -66,10 +67,24 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
         : "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
 
     try {
-      final res = await http.get(Uri.parse(url));
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+      final res = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (res.statusCode != 200) {
-        throw Exception("HTTP ${res.statusCode}");
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+        throw Exception("서버 에러 발생!\n상태 코드: ${res.statusCode}\n응답 내용: ${res.body}");
       }
+
       final jsonMap = json.decode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
       final docs = jsonMap['docs'] as List<dynamic>?;
 
@@ -102,11 +117,25 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
   }
 
   Future<void> _postNoticeAttend({required String attend}) async {
+    // 1. 저장된 토큰 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
     final url =
         '${ApiConf.baseUrl}/phapp/noticeAttend/$memberNo/$noticeNo/$noticeType/$attend';
-    final response = await http.post(Uri.parse(url));
+
+    // 2. 헤더에 토큰을 담아서 POST 요청 보내기
+    final response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
     if (response.statusCode != 200) {
-      throw Exception('전송 실패(${response.statusCode})');
+      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+      throw Exception('전송 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
 

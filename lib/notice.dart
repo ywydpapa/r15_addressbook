@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class NoticeScreen extends StatelessWidget {
   const NoticeScreen({Key? key}) : super(key: key);
@@ -62,7 +63,20 @@ class NoticeScreen extends StatelessWidget {
       } else {
         url = '${ApiConf.baseUrl}/phapp/notice/$mregionNo/$memberNo';
       }
-      final response = await http.get(Uri.parse(url));
+
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (response.statusCode == 200) {
         final decodedBody = utf8.decode(response.bodyBytes);
         final data = json.decode(decodedBody);
@@ -72,10 +86,11 @@ class NoticeScreen extends StatelessWidget {
           throw Exception('Invalid response format: docs not found or not a list');
         }
       } else {
-        throw Exception('Failed to load documents: ${response.statusCode}');
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+        throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
       }
     } catch (e, stack) {
-      throw Exception('문서를 불러오는 중 오류가 발생했습니다.');
+      throw Exception('문서를 불러오는 중 오류가 발생했습니다: $e');
     }
   }
 }
@@ -86,10 +101,24 @@ Future<void> postNoticeRead({
   required int noticeNo,
   required String noticeType,
 }) async {
+  // 1. 저장된 토큰 불러오기
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('access_token') ?? '';
+
   final url = '${ApiConf.baseUrl}/phapp/noticeRead/$memberNo/$noticeNo/$noticeType';
-  final response = await http.post(Uri.parse(url));
+
+  // 2. 헤더에 토큰을 담아서 POST 요청 보내기
+  final response = await http.post(
+    Uri.parse(url),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    },
+  );
+
   if (response.statusCode != 200) {
-    throw Exception('Failed to mark notice as read');
+    // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+    throw Exception('읽음 처리 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
   }
 }
 
@@ -118,8 +147,16 @@ class NoticeListWidget extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
+          // 에러 메시지를 잘 보이게 빨간색으로 가운데 정렬
           return Center(
-            child: Text('문서를 불러오는 중 오류가 발생했습니다: ${snapshot.error}'),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                '${snapshot.error}',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.red, fontSize: 16),
+              ),
+            ),
           );
         } else if (snapshot.hasData) {
           final docs = snapshot.data!;
@@ -149,7 +186,7 @@ class NoticeListWidget extends StatelessWidget {
                       );
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('읽음 처리 중 오류 발생')),
+                        SnackBar(content: Text('읽음 처리 중 오류 발생: $e')),
                       );
                     }
                     Navigator.pushNamed(

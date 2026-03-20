@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'membertab.dart';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 // Member 모델은 그대로 두세요
 class Member {
@@ -79,8 +80,17 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
     }
 
     try {
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/rsearchmember/$mregionNo/$keyword'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -101,13 +111,16 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
           });
         }
       } else {
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         setState(() {
-          _errorMessage = '서버 오류 (${response.statusCode})';
+          _errorMessage = '서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}';
+          _searchResults = [];
         });
       }
     } catch (e) {
       setState(() {
         _errorMessage = '네트워크 오류: $e';
+        _searchResults = [];
       });
     }
   }
@@ -138,10 +151,14 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
             if (_errorMessage.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Text(_errorMessage, style: TextStyle(color: Colors.red)),
+                child: Text(
+                  _errorMessage,
+                  style: TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
               ),
             Expanded(
-              child: _searchResults.isEmpty
+              child: _searchResults.isEmpty && _errorMessage.isEmpty
                   ? Center(child: Text('검색 결과가 없습니다.'))
                   : InteractiveViewer(
                 panEnabled: true,
@@ -152,8 +169,11 @@ class _MemberSearchScreenState extends State<MemberSearchScreen> {
                   itemCount: _searchResults.length,
                   itemBuilder: (context, index) {
                     final member = _searchResults[index];
+
+                    // 💡 썸네일 이미지 경로에 mphoto_ 추가
                     final imageUrl =
-                        '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                        '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
+
                     return Card(
                       margin: EdgeInsets.all(8.0),
                       child: ListTile(

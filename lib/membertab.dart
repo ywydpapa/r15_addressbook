@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class Memberdtl {
   final int? memberNo;
   final String memberName;
   final String memberPhone;
   final String rankTitle;
-  final String? mPhotoBase64;
+  final String? mPhotoBase64; // 이제 Base64가 아니라 URL 경로가 담깁니다.
   final String? memberMF;
   final String? memberAddress;
   final String? memberEmail;
@@ -17,8 +18,8 @@ class Memberdtl {
   final String? memberBirth;
   final String? clubName;
   final String? clubNo;
-  final String? nameCard;
-  final String? spousePhoto;
+  final String? nameCard; // URL 경로
+  final String? spousePhoto; // URL 경로
   final String? spouseName;
   final String? spousePhone;
   final String? spouseBirth;
@@ -75,8 +76,7 @@ class Memberdtl {
       memberName: json['memberName'] ?? '정보 없음',
       memberPhone: json['memberPhone'] ?? '정보 없음',
       rankTitle: json['rankTitle'] ?? '정보 없음',
-      mPhotoBase64: (json['mPhotoBase64'] != null &&
-          json['mPhotoBase64'].toString() != '0')
+      mPhotoBase64: (json['mPhotoBase64'] != null && json['mPhotoBase64'].toString().isNotEmpty)
           ? json['mPhotoBase64'].toString()
           : null,
       memberMF: json['memberMF']?.toString() ?? '',
@@ -86,11 +86,10 @@ class Memberdtl {
       memberBirth: json['memberBirth']?.toString() ?? '',
       clubName: json['clubName']?.toString() ?? '소속클럽 없음',
       clubNo: json['clubNo']?.toString(),
-      nameCard: (json['nameCard'] != null && json['nameCard'].toString() != '0')
+      nameCard: (json['nameCard'] != null && json['nameCard'].toString().isNotEmpty)
           ? json['nameCard'].toString()
           : null,
-      spousePhoto: (json['spousePhoto'] != null &&
-          json['spousePhoto'].toString() != '0')
+      spousePhoto: (json['spousePhoto'] != null && json['spousePhoto'].toString().isNotEmpty)
           ? json['spousePhoto'].toString()
           : null,
       spouseName: json['spouseName']?.toString(),
@@ -108,26 +107,26 @@ class Memberdtl {
       offWeb: json['offWeb']?.toString(),
       offSns: json['offSns']?.toString(),
       bisMemo: json['bisMemo']?.toString(),
-      clubRank: json['clubRank'].toString(),
+      clubRank: json['clubRank']?.toString(),
     );
   }
 }
 
-  class MemberDetailScreen extends StatefulWidget {
+class MemberDetailScreen extends StatefulWidget {
   final int memberNo;
   final String memberName;
   final String? mclubNo;
 
   const MemberDetailScreen({
-  super.key,
-  required this.memberNo,
-  required this.memberName,
-  this.mclubNo,
+    super.key,
+    required this.memberNo,
+    required this.memberName,
+    this.mclubNo,
   });
 
   @override
   _MemberDetailScreenState createState() => _MemberDetailScreenState();
-  }
+}
 
 class _MemberDetailScreenState extends State<MemberDetailScreen> {
   late Future<Memberdtl> _memberDetail;
@@ -139,8 +138,17 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Future<Memberdtl> fetchMemberDetail(int memberNo) async {
+    // 1. 저장된 토큰 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
+    // 2. 헤더에 토큰을 담아서 GET 요청 보내기
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/memberDtl/$memberNo'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
     );
 
     if (response.statusCode == 200) {
@@ -151,10 +159,11 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         final memberData = data['memberdtl'][0];
         return Memberdtl.fromJson(memberData);
       } else {
-        throw Exception('No member detail found');
+        throw Exception('회원 상세 정보를 찾을 수 없습니다.');
       }
     } else {
-      throw Exception('Failed to load member detail');
+      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+      throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
 
@@ -164,7 +173,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       style: TextStyle(fontSize: 18, color: isPhone ? Colors.blue : Colors.black),
     );
 
-    if (isPhone && value != '정보 없음') {
+    if (isPhone && value != '정보 없음' && value != '비공개') {
       valueWidget = InkWell(
         onTap: () async {
           final Uri phoneUri = Uri(scheme: 'tel', path: value.replaceAll('-', ''));
@@ -194,19 +203,42 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     );
   }
 
-  String cleanBase64Data(String base64Data) {
-    if (base64Data.contains(',')) {
-      base64Data = base64Data.split(',')[1];
-    }
-    base64Data = base64Data.replaceAll(RegExp(r'[^A-Za-z0-9+/=]'), '');
-    return addBase64Padding(base64Data);
-  }
+  // 네트워크 이미지 위젯 생성 헬퍼 함수
+  Widget _buildNetworkImage(String? urlPath, double height, double width) {
+    if (urlPath != null && urlPath.isNotEmpty) {
+      // urlPath가 이미 http로 시작하면 그대로 사용, 아니면 baseUrl 합성
+      final imageUrl = urlPath.startsWith('http') ? urlPath : '${ApiConf.baseUrl}$urlPath';
 
-  String addBase64Padding(String base64) {
-    while (base64.length % 4 != 0) {
-      base64 += '=';
+      return Image.network(
+        imageUrl,
+        height: height,
+        width: width,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Image.asset(
+            'assets/defaultphoto.png',
+            height: height,
+            width: width,
+            fit: BoxFit.cover,
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return SizedBox(
+            height: height,
+            width: width,
+            child: Center(child: CircularProgressIndicator()),
+          );
+        },
+      );
+    } else {
+      return Image.asset(
+        'assets/defaultphoto.png',
+        height: height,
+        width: width,
+        fit: BoxFit.cover,
+      );
     }
-    return base64;
   }
 
   @override
@@ -215,10 +247,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('회원 상세 정보')),
       body: InteractiveViewer(
-        panEnabled: true, // 드래그로 이동 가능
-        scaleEnabled: true, // 핀치로 확대/축소 가능
-        minScale: 1.0, // 최소 1배
-        maxScale: 3.0, // 최대 3배
+        panEnabled: true,
+        scaleEnabled: true,
+        minScale: 1.0,
+        maxScale: 3.0,
         child: SafeArea(
           child: FutureBuilder<Memberdtl>(
             future: _memberDetail,
@@ -226,7 +258,17 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
+                // 에러 메시지를 잘 보이게 빨간색으로 가운데 정렬
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red, fontSize: 16),
+                    ),
+                  ),
+                );
               } else if (!snapshot.hasData) {
                 return Center(child: Text('No data found'));
               } else {
@@ -249,29 +291,16 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     );
   }
 
-
   Widget _buildMemberInfoPage(Memberdtl member) {
     return SingleChildScrollView(
-        child: Padding(
-            padding: const EdgeInsets.only(top: 16.0),
-            child: Column(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16.0),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 16),
             Center(
-              child: member.mPhotoBase64 != null && member.mPhotoBase64!.isNotEmpty
-                  ? Image.memory(
-                base64Decode(cleanBase64Data(member.mPhotoBase64!)),
-                height: 280,
-                width: 200,
-                fit: BoxFit.cover,
-              )
-                  : Image.asset(
-                'assets/defaultphoto.png',
-                height: 280,
-                width: 200,
-                fit: BoxFit.cover,
-              ),
+              child: _buildNetworkImage(member.mPhotoBase64, 280, 200),
             ),
             SizedBox(height: 24),
             Padding(
@@ -284,9 +313,9 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 children: [
                   _buildTableRow('회원성명', member.memberName),
                   _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
-                (member.clubNo?.toString() != (widget.mclubNo?.toString()))
-                  ? _buildTableRow('직책', (member.rankTitle ?? ''))
-                  : _buildTableRow('클럽직책', (member.clubRank ?? '')),
+                  (member.clubNo?.toString() != (widget.mclubNo?.toString()))
+                      ? _buildTableRow('직책', (member.rankTitle))
+                      : _buildTableRow('클럽직책', (member.clubRank ?? '')),
                   _buildTableRow('연락처', member.memberPhone, isPhone: true),
                   _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
                   _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
@@ -295,8 +324,8 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               ),
             ),
           ],
-         ),
-       )
+        ),
+      ),
     );
   }
 
@@ -308,24 +337,15 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         : ((member.bisType?.trim().isNotEmpty == true)
         ? member.bisType!.trim()
         : '없음');
+
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.only(top: 16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            member.nameCard != null && member.nameCard!.isNotEmpty
-                ? Image.memory(
-              base64Decode(cleanBase64Data(member.nameCard!)),
-              height: 200,
-              width: 360,
-              fit: BoxFit.cover,
-            )
-                : Image.asset(
-              'assets/defaultphoto.png',
-              height: 200,
-              width: 300,
-              fit: BoxFit.cover,
+            Center(
+              child: _buildNetworkImage(member.nameCard, 200, 360),
             ),
             SizedBox(height: 16),
             Padding(
@@ -353,23 +373,13 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     );
   }
 
-
   Widget _buildSpouseInfoPage(Memberdtl member) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        member.spousePhoto != null && member.spousePhoto!.isNotEmpty
-            ? Image.memory(
-          base64Decode(cleanBase64Data(member.spousePhoto!)),
-          height: 280,
-          width: 200,
-          fit: BoxFit.cover,
-        )
-            : Image.asset(
-          'assets/defaultphoto.png',
-          height: 280,
-          width: 200,
-          fit: BoxFit.cover,
+        SizedBox(height: 16),
+        Center(
+          child: _buildNetworkImage(member.spousePhoto, 280, 200),
         ),
         SizedBox(height: 16),
         Padding(

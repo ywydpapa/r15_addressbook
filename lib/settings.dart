@@ -5,7 +5,6 @@ import 'config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
-
 const String kAutoLoginEnabled = 'autoLoginEnabled';
 const String kAutoLoginPhone = 'autoLoginPhone';
 
@@ -118,12 +117,23 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-
   Future<void> _fetchSecurityLevel(String memberNo) async {
     setState(() => _isLoading = true);
     final url = '${ApiConf.baseUrl}/phapp/getmask/$memberNo';
     try {
-      final response = await http.get(Uri.parse(url));
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         String code = data['maskYN'] ?? 'N';
@@ -134,8 +144,9 @@ class _SettingScreenState extends State<SettingScreen> {
         });
       } else {
         setState(() => _isLoading = false);
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('설정 정보를 불러오지 못했습니다.')),
+          SnackBar(content: Text('설정 정보 로드 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
       }
     } catch (e) {
@@ -151,10 +162,23 @@ class _SettingScreenState extends State<SettingScreen> {
     String code = _securityCodes[level];
     final url = '${ApiConf.baseUrl}/phapp/maskYN/$memberNo/$code';
     try {
-      final response = await http.post(Uri.parse(url));
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 POST 요청 보내기
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (response.statusCode != 200) {
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('설정 변경 실패: ${response.statusCode}')),
+          SnackBar(content: Text('설정 변경 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
       }
     } catch (e) {
@@ -168,10 +192,23 @@ class _SettingScreenState extends State<SettingScreen> {
     if (memberNo == null) return;
     final url = '${ApiConf.baseUrl}/phapp/funcNo/$memberNo/$mode';
     try {
-      final response = await http.post(Uri.parse(url));
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 POST 요청 보내기
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
       if (response.statusCode != 200) {
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('운영설정 변경 실패: ${response.statusCode}')),
+          SnackBar(content: Text('운영설정 변경 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
       }
     } catch (e) {

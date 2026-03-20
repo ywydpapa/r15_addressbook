@@ -4,6 +4,7 @@ import 'package:flutter_html_all/flutter_html_all.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class DocViewerScreen extends StatefulWidget {
   const DocViewerScreen({super.key});
@@ -32,7 +33,18 @@ class DocViewerScreenState extends State<DocViewerScreen> {
     final String url = "${ApiConf.baseUrl}/phapp/docviewer/$docNo";
 
     try {
-      final response = await http.get(Uri.parse(url));
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = json.decode(
@@ -45,11 +57,13 @@ class DocViewerScreenState extends State<DocViewerScreen> {
           isLoading = false; // 로딩 완료
         });
       } else {
-        throw Exception("Failed to load HTML data: ${response.statusCode}");
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+        throw Exception("서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}");
       }
     } catch (e) {
       setState(() {
-        htmlData = "<p>Error loading content: ${e.toString()}</p>";
+        // 에러 내용을 HTML 형태로 화면에 표시
+        htmlData = "<p style='color:red; text-align:center; padding:20px;'>Error loading content:<br/>${e.toString()}</p>";
         htmlTitle = "Error"; // 에러 발생 시 기본 타이틀
         isLoading = false; // 로딩 종료
       });

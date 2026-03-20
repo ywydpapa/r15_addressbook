@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class RequestScreen extends StatefulWidget {
   const RequestScreen({super.key});
@@ -27,28 +28,42 @@ class _RequestScreenState extends State<RequestScreen> {
     setState(() => _isLoading = true);
 
     try {
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 POST 요청 보내기
       final response = await http.post(
         Uri.parse('${ApiConf.baseUrl}/phapp/requestmessage'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'memberNo': memberNo, 'message': message}),
       );
 
       if (response.statusCode == 200) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('요청이 접수되었습니다!')),
         );
         _textController.clear();
       } else {
+        if (!mounted) return;
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('요청 실패: ${response.body}')),
+          SnackBar(content: Text('요청 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('네트워크 오류: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

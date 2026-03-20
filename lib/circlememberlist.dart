@@ -33,7 +33,6 @@ class Member {
 }
 
 class CircleMemberListScreen extends StatefulWidget {
-
   final int circleNo;
   final String circleName;
   const CircleMemberListScreen({
@@ -55,11 +54,12 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _kBlue(int memberNo) => 'circle_${circleNo}_member_${memberNo}_green';
   String _kRed(int memberNo)  => 'circle_${circleNo}_member_${memberNo}_red';
+
   // 체크 상태 저장 (memberNo 기준)
   final Map<int, bool> _blueChecked = {};
   final Map<int, bool> _redChecked = {};
 
-// 3초 홀드 감지용 타이머
+  // 3초 홀드 감지용 타이머
   Timer? _holdTimer;
   bool _resetDialogOpen = false;
 
@@ -85,28 +85,43 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
   }
 
   Future<List<Member>> fetchCircleMemberList(int circleNo) async {
-    final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/getcirclemembers/$circleNo'),
-    );
-    if (response.statusCode == 200) {
-      final decodedResponse = utf8.decode(response.bodyBytes);
-      Map<String, dynamic> data = json.decode(decodedResponse);
-      List<dynamic> members = data['cmembers'];
-      List<Member> memberList =
-      members.map((json) => Member.fromJson(json)).toList();
+    try {
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
 
-      setState(() {
-        _allMembers = memberList;
-        _filteredMembers = memberList;
-        for (final m in memberList) {
-          _blueChecked.putIfAbsent(m.memberNo, () => false);
-          _redChecked.putIfAbsent(m.memberNo, () => false);
-        }
-      });
-      await _loadChecksFromPrefs(memberList);
-      return memberList;
-    } else {
-      throw Exception('Failed to load member list');
+      final response = await http.get(
+        Uri.parse('${ApiConf.baseUrl}/phapp/getcirclemembers/$circleNo'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final decodedResponse = utf8.decode(response.bodyBytes);
+        Map<String, dynamic> data = json.decode(decodedResponse);
+
+        // 💡 수정된 부분: 백엔드 응답 키에 맞춰 'cmembers'로 변경
+        List<dynamic> members = data['cmembers'] ?? [];
+        List<Member> memberList =
+        members.map((json) => Member.fromJson(json)).toList();
+
+        setState(() {
+          _allMembers = memberList;
+          _filteredMembers = memberList;
+          for (final m in memberList) {
+            _blueChecked.putIfAbsent(m.memberNo, () => false);
+            _redChecked.putIfAbsent(m.memberNo, () => false);
+          }
+        });
+        await _loadChecksFromPrefs(memberList);
+        return memberList;
+      } else {
+        throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('회원 목록을 불러오는 중 오류가 발생했습니다:\n$e');
     }
   }
 
@@ -141,7 +156,6 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
       await prefs.setBool(_kRed(memberNo), false);
     }
   }
-
 
   Future<void> _confirmAndResetAllChecks() async {
     if (_resetDialogOpen) return; // 중복 방지
@@ -228,9 +242,18 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          '${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ),
+                    );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No members found'));
+                    return Center(child: Text('조회된 회원이 없습니다.'));
                   } else {
                     return InteractiveViewer(
                       panEnabled: true, // 화면 이동 허용
@@ -241,8 +264,10 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                         itemCount: _filteredMembers.length,
                         itemBuilder: (context, index) {
                           final member = _filteredMembers[index];
+
                           final imageUrl =
-                              '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                              '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
+
                           return Card(
                             margin: EdgeInsets.all(8.0),
                             child: ListTile(
@@ -260,7 +285,7 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Image.asset(
-                                        'assets/default.png',
+                                        'assets/defaultphoto.png',
                                         fit: BoxFit.cover,
                                       );
                                     },
@@ -298,17 +323,17 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                                     onTapUp: (_) => _cancelHoldToResetTimer(),
                                     onTapCancel: () => _cancelHoldToResetTimer(),
                                     child: Checkbox(
-                                      value: _blueChecked[member.memberNo] ?? false, // (이름은 blue지만 초록 체크로 사용)
+                                      value: _blueChecked[member.memberNo] ?? false,
                                       onChanged: (v) async {
                                         setState(() => _blueChecked[member.memberNo] = v ?? false);
                                         await _saveOneCheck(member.memberNo);
                                       },
-                                      activeColor: Colors.transparent, // 체크 시 배경색(채움) 방지용
-                                      fillColor: WidgetStateProperty.all(Colors.transparent), // 항상 투명
-                                      checkColor: Colors.green, // ✔ 색
-                                      side: BorderSide(color: Colors.black.withOpacity(0.15), width: 1), // 박스 테두리 옅게
-                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // 클릭 영역 과도하게 커지는 것 방지
-                                      visualDensity: const VisualDensity(horizontal: -3, vertical: -3), // 크기 조금 줄임(원치 않으면 제거)
+                                      activeColor: Colors.transparent,
+                                      fillColor: WidgetStateProperty.all(Colors.transparent),
+                                      checkColor: Colors.green,
+                                      side: BorderSide(color: Colors.black.withOpacity(0.15), width: 1),
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
                                     ),
                                   ),
 
@@ -327,7 +352,7 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                                       },
                                       activeColor: Colors.transparent,
                                       fillColor: WidgetStateProperty.all(Colors.transparent),
-                                      checkColor: Colors.red, // ✔ 색
+                                      checkColor: Colors.red,
                                       side: BorderSide(color: Colors.black.withOpacity(0.15), width: 1),
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                       visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
@@ -342,7 +367,7 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
                                     builder: (context) => MemberSimpleDetailScreen(
                                       memberNo: member.memberNo,
                                       memberName: member.memberName,
-                                      mclubNo: '42',
+                                      mclubNo: '42', // 필요시 동적으로 변경
                                     ),
                                   ),
                                 );

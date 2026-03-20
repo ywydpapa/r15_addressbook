@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'membertab.dart'; // 필요시 주석 해제
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 // Member 모델 정의
 class Member {
@@ -76,8 +77,17 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
       _errorMsg = null;
     });
     try {
+      // 1. 저장된 토큰 불러오기
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/rnkmemberList/$mregionNo'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -108,8 +118,9 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
           _isLoading = false;
         });
       } else {
+        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         setState(() {
-          _errorMsg = 'Failed to load member list';
+          _errorMsg = '서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}';
           _isLoading = false;
         });
       }
@@ -174,7 +185,16 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
               child: _isLoading
                   ? Center(child: CircularProgressIndicator())
                   : _errorMsg != null
-                  ? Center(child: Text(_errorMsg!))
+                  ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    _errorMsg!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red, fontSize: 16),
+                  ),
+                ),
+              )
                   : _filteredMembers.isEmpty
                   ? Center(child: Text('No members found'))
                   : InteractiveViewer(
@@ -186,8 +206,10 @@ class _RankMemberScreenState extends State<RankMemberScreen> {
                   itemCount: _filteredMembers.length,
                   itemBuilder: (context, index) {
                     final member = _filteredMembers[index];
+
+                    // 💡 썸네일 이미지 경로에 mphoto_ 추가
                     final imageUrl =
-                        '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
+                        '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
 
                     return Card(
                       margin: EdgeInsets.all(8.0),

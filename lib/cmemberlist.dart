@@ -3,6 +3,7 @@ import 'membertab.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
 
 class Member {
   final int memberNo;
@@ -66,9 +67,19 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 
   Future<List<Member>> fetchMemberList(int clubNo) async {
+    // 1. 저장된 토큰 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token') ?? '';
+
+    // 2. 헤더에 토큰을 담아서 GET 요청 보내기
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/memberList/$clubNo'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
     );
+
     if (response.statusCode == 200) {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
@@ -83,18 +94,18 @@ class _MemberListScreenState extends State<MemberListScreen> {
 
       return memberList;
     } else {
-      throw Exception('Failed to load member list');
+      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
+      throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
 
   void _filterMembers() {
     String query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredMembers =
-          _allMembers.where((member) {
-            return member.memberName.toLowerCase().contains(query) ||
-                member.memberPhone.toLowerCase().contains(query);
-          }).toList();
+      _filteredMembers = _allMembers.where((member) {
+        return member.memberName.toLowerCase().contains(query) ||
+            member.memberPhone.toLowerCase().contains(query);
+      }).toList();
     });
   }
 
@@ -132,74 +143,86 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
+                    // 에러 메시지를 화면 중앙에 잘 보이게 표시
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ),
+                    );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return Center(child: Text('No members found'));
                   } else {
                     return InteractiveViewer(
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        minScale: 0.8,
-                        maxScale: 3.0,
-                        child: ListView.builder(
-                      itemCount: _filteredMembers.length,
-                      itemBuilder: (context, index) {
-                        final member = _filteredMembers[index];
-                        final imageUrl =
-                            '${ApiConf.baseUrl}/thumbnails/${member.memberNo}.png';
-                        return Card(
-                          margin: EdgeInsets.all(8.0),
-                          child: ListTile(
-                            leading: Container(
-                              width: 60,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.grey[200],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/default.png',
-                                      fit: BoxFit.cover,
-                                    );
-                                  },
+                      panEnabled: true,
+                      scaleEnabled: true,
+                      minScale: 0.8,
+                      maxScale: 3.0,
+                      child: ListView.builder(
+                        itemCount: _filteredMembers.length,
+                        itemBuilder: (context, index) {
+                          final member = _filteredMembers[index];
+
+                          // 💡 썸네일 이미지 경로에 mphoto_ 추가
+                          final imageUrl =
+                              '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
+
+                          return Card(
+                            margin: EdgeInsets.all(8.0),
+                            child: ListTile(
+                              leading: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: Colors.grey[200],
                                 ),
-                              ),
-                            ),
-                            title: Text(member.memberName),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                (widget.mclubNo.toString() == widget.clubNo.toString() && member.clubRank.isNotEmpty)
-                                    ? Text('클럽직책: ${member.clubRank}')
-                                    : Text('직책: ${member.rankTitle ?? ""}'),
-                                Text(
-                                  '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder:
-                                      (context) => MemberDetailScreen(
-                                    memberNo: member.memberNo,
-                                    memberName: member.memberName,
-                                    mclubNo: widget.mclubNo,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        'assets/default.png',
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                        ),
+                              ),
+                              title: Text(member.memberName),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  (widget.mclubNo.toString() == widget.clubNo.toString() && member.clubRank.isNotEmpty)
+                                      ? Text('클럽직책: ${member.clubRank}')
+                                      : Text('직책: ${member.rankTitle ?? ""}'),
+                                  Text(
+                                    '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => MemberDetailScreen(
+                                      memberNo: member.memberNo,
+                                      memberName: member.memberName,
+                                      mclubNo: widget.mclubNo,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     );
                   }
                 },
