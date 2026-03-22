@@ -3,14 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Memberdtl {
   final int? memberNo;
   final String memberName;
   final String memberPhone;
   final String rankTitle;
-  final String? mPhotoBase64; // 이제 Base64가 아니라 URL 경로가 담깁니다.
+  final String? mPhotoBase64;
   final String? memberMF;
   final String? memberAddress;
   final String? memberEmail;
@@ -18,8 +18,8 @@ class Memberdtl {
   final String? memberBirth;
   final String? clubName;
   final String? clubNo;
-  final String? nameCard; // URL 경로
-  final String? spousePhoto; // URL 경로
+  final String? nameCard;
+  final String? spousePhoto;
   final String? spouseName;
   final String? spousePhone;
   final String? spouseBirth;
@@ -138,11 +138,9 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Future<Memberdtl> fetchMemberDetail(int memberNo) async {
-    // 1. 저장된 토큰 불러오기
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token') ?? '';
 
-    // 2. 헤더에 토큰을 담아서 GET 요청 보내기
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/memberDtl/$memberNo'),
       headers: {
@@ -162,15 +160,20 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         throw Exception('회원 상세 정보를 찾을 수 없습니다.');
       }
     } else {
-      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
       throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
 
-  TableRow _buildTableRow(String label, String value, {bool isPhone = false}) {
+  // 🎨 세련되고 글씨 크기가 커진 리스트 항목 위젯
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool isPhone = false}) {
     Widget valueWidget = Text(
       value,
-      style: TextStyle(fontSize: 18, color: isPhone ? Colors.blue : Colors.black),
+      style: TextStyle(
+        fontSize: 17, // 💡 글씨 크기 확대 (기존 15 -> 17)
+        color: isPhone ? Colors.blueAccent : Colors.black87,
+        fontWeight: isPhone ? FontWeight.w600 : FontWeight.w500,
+      ),
+      textAlign: TextAlign.right,
     );
 
     if (isPhone && value != '정보 없음' && value != '비공개') {
@@ -180,72 +183,123 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           if (await canLaunchUrl(phoneUri)) {
             await launchUrl(phoneUri);
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('전화를 걸 수 없습니다.')),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('전화를 걸 수 없습니다.')),
+              );
+            }
           }
         },
         child: valueWidget,
       );
     }
 
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Text(label, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: valueWidget,
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0), // 💡 상하 여백 살짝 넓힘
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 24, color: Colors.grey.shade500), // 💡 아이콘 크기 확대
+          SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 17, // 💡 라벨 글씨 크기 확대
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: valueWidget,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  // 네트워크 이미지 위젯 생성 헬퍼 함수
-  Widget _buildNetworkImage(String? urlPath, double height, double width) {
+  // 🎨 그림자와 둥근 모서리가 적용된 이미지 위젯
+  Widget _buildNetworkImage(String? urlPath, double height, double width, {double borderRadius = 16.0}) {
+    Widget imageWidget;
     if (urlPath != null && urlPath.isNotEmpty) {
-      // urlPath가 이미 http로 시작하면 그대로 사용, 아니면 baseUrl 합성
       final imageUrl = urlPath.startsWith('http') ? urlPath : '${ApiConf.baseUrl}$urlPath';
-
-      return Image.network(
+      imageWidget = Image.network(
         imageUrl,
         height: height,
         width: width,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Image.asset(
-            'assets/defaultphoto.png',
-            height: height,
-            width: width,
-            fit: BoxFit.cover,
-          );
-        },
+        errorBuilder: (context, error, stackTrace) => _defaultImage(height, width),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return SizedBox(
             height: height,
             width: width,
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         },
       );
     } else {
-      return Image.asset(
-        'assets/defaultphoto.png',
-        height: height,
-        width: width,
-        fit: BoxFit.cover,
-      );
+      imageWidget = _defaultImage(height, width);
     }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: imageWidget,
+      ),
+    );
+  }
+
+  Widget _defaultImage(double height, double width) {
+    return Image.asset(
+      'assets/defaultphoto.png',
+      height: height,
+      width: width,
+      fit: BoxFit.cover,
+    );
+  }
+
+  // 🎨 페이지 상단 타이틀 위젯
+  Widget _buildPageTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 22, // 💡 타이틀 글씨 크기 확대 (기존 20 -> 22)
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final String? mclubNo = widget.mclubNo;
     return Scaffold(
-      appBar: AppBar(title: Text('회원 상세 정보')),
+      backgroundColor: Colors.grey.shade50, // 🎨 배경색 지정
+      appBar: AppBar(
+        title: Text('회원 상세 정보', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0, // 🎨 앱바 그림자 제거로 모던함 강조
+        centerTitle: true,
+      ),
       body: InteractiveViewer(
         panEnabled: true,
         scaleEnabled: true,
@@ -258,19 +312,18 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
-                // 에러 메시지를 잘 보이게 빨간색으로 가운데 정렬
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Text(
                       'Error: ${snapshot.error}',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.red, fontSize: 16),
+                      style: TextStyle(color: Colors.redAccent, fontSize: 16),
                     ),
                   ),
                 );
               } else if (!snapshot.hasData) {
-                return Center(child: Text('No data found'));
+                return Center(child: Text('데이터를 찾을 수 없습니다.', style: TextStyle(color: Colors.grey)));
               } else {
                 final member = snapshot.data!;
                 List<Widget> pages = [
@@ -282,7 +335,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   pages.add(_buildSpouseInfoPage(member));
                 }
 
-                return PageView(children: pages);
+                return PageView(
+                  physics: BouncingScrollPhysics(), // 🎨 부드러운 스크롤 효과
+                  children: pages,
+                );
               }
             },
           ),
@@ -293,36 +349,42 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Widget _buildMemberInfoPage(Memberdtl member) {
     return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.only(top: 16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 16),
-            Center(
-              child: _buildNetworkImage(member.mPhotoBase64, 280, 200),
-            ),
+            _buildPageTitle('회원 정보'),
+            _buildNetworkImage(member.mPhotoBase64, 260, 200, borderRadius: 20),
             SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Table(
-                columnWidths: {
-                  0: FlexColumnWidth(1),
-                  1: FlexColumnWidth(2),
-                },
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Column(
                 children: [
-                  _buildTableRow('회원성명', member.memberName),
-                  _buildTableRow('소속클럽', member.clubName ?? '정보 없음'),
+                  _buildInfoRow(Icons.person, '회원성명', member.memberName),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.groups, '소속클럽', member.clubName ?? '정보 없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
                   (member.clubNo?.toString() != (widget.mclubNo?.toString()))
-                      ? _buildTableRow('직책', (member.rankTitle))
-                      : _buildTableRow('클럽직책', (member.clubRank ?? '')),
-                  _buildTableRow('연락처', member.memberPhone, isPhone: true),
-                  _buildTableRow('주소', member.memberAddress ?? '주소 없음'),
-                  _buildTableRow('생년월일', member.memberBirth ?? '정보 없음'),
-                  _buildTableRow('추가기재', member.addMemo ?? '없음'),
+                      ? _buildInfoRow(Icons.badge, '직책', member.rankTitle)
+                      : _buildInfoRow(Icons.badge, '클럽직책', member.clubRank ?? '정보 없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.phone_iphone, '연락처', member.memberPhone, isPhone: true),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.location_on, '주소', member.memberAddress ?? '주소 없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.cake, '생년월일', member.memberBirth ?? '정보 없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.note_alt, '추가기재', member.addMemo ?? '없음'),
                 ],
               ),
             ),
+            SizedBox(height: 30), // 하단 여백
           ],
         ),
       ),
@@ -331,42 +393,46 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   Widget _buildNameCardPage(Memberdtl member) {
     final String bizTypeText = (member.bisType?.trim().toUpperCase() == 'SELF')
-        ? ((member.bistypeTitle?.trim().isNotEmpty == true)
-        ? member.bistypeTitle!.trim()
-        : '없음')
-        : ((member.bisType?.trim().isNotEmpty == true)
-        ? member.bisType!.trim()
-        : '없음');
+        ? ((member.bistypeTitle?.trim().isNotEmpty == true) ? member.bistypeTitle!.trim() : '없음')
+        : ((member.bisType?.trim().isNotEmpty == true) ? member.bisType!.trim() : '없음');
 
     return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
       child: Padding(
-        padding: const EdgeInsets.only(top: 16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            Center(
-              child: _buildNetworkImage(member.nameCard, 200, 360),
-            ),
-            SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.only(left: 16.0),
-              child: Table(
-                columnWidths: {
-                  0: FlexColumnWidth(1),
-                  1: FlexColumnWidth(2),
-                },
+            _buildPageTitle('회원 업체 정보'),
+            _buildNetworkImage(member.nameCard, 220, double.infinity, borderRadius: 12),
+            SizedBox(height: 24),
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Column(
                 children: [
-                  _buildTableRow('소속클럽', member.clubName ?? '없음'),
-                  _buildTableRow('업체명', member.bisTitle ?? '없음'),
-                  _buildTableRow('직책', member.bisRank ?? '없음'),
-                  _buildTableRow('업종', bizTypeText),
-                  _buildTableRow('사무실주소', member.offAddress ?? '없음'),
-                  _buildTableRow('우편번호', member.offPostNo ?? '없음'),
-                  _buildTableRow('사무실전화', member.offTel ?? '없음'),
-                  _buildTableRow('웹페이지', member.offWeb ?? '없음'),
+                  _buildInfoRow(Icons.groups, '소속클럽', member.clubName ?? '없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.business, '업체명', member.bisTitle ?? '없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.work, '직책', member.bisRank ?? '없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.category, '업종', bizTypeText),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.business_center, '사무실주소', member.offAddress ?? '없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.markunread_mailbox, '우편번호', member.offPostNo ?? '없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.phone, '사무실전화', member.offTel ?? '없음', isPhone: true),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.language, '웹페이지', member.offWeb ?? '없음'),
                 ],
               ),
             ),
+            SizedBox(height: 30),
           ],
         ),
       ),
@@ -374,29 +440,36 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Widget _buildSpouseInfoPage(Memberdtl member) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        SizedBox(height: 16),
-        Center(
-          child: _buildNetworkImage(member.spousePhoto, 280, 200),
+    return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            _buildPageTitle('회원 배우자'),
+            _buildNetworkImage(member.spousePhoto, 260, 200, borderRadius: 20),
+            SizedBox(height: 24),
+            Card(
+              elevation: 0,
+              color: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow(Icons.favorite, '배우자 이름', member.spouseName ?? '정보 없음'),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.phone_iphone, '배우자 연락처', member.spousePhone ?? '정보 없음', isPhone: true),
+                  Divider(height: 1, color: Colors.grey.shade200),
+                  _buildInfoRow(Icons.cake, '배우자 생일', member.spouseBirth ?? '정보 없음'),
+                ],
+              ),
+            ),
+            SizedBox(height: 30),
+          ],
         ),
-        SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.only(left: 16.0),
-          child: Table(
-            columnWidths: {
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(2),
-            },
-            children: [
-              _buildTableRow('배우자 이름', member.spouseName ?? 'Unknown'),
-              _buildTableRow('배우자 연락처', member.spousePhone ?? 'Unknown'),
-              _buildTableRow('배우자 생일', member.spouseBirth ?? 'Unknown'),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

@@ -26,16 +26,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 }
 
-// 💡 수정됨: API 호출 시 저장된 토큰을 헤더에 추가
 Future<List<dynamic>> fetchCircleList(String memberNo) async {
   try {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? ''; // 저장된 토큰 불러오기
+    final token = prefs.getString('access_token') ?? '';
 
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/getmycircle/$memberNo'),
       headers: {
-        'Authorization': 'Bearer $token', // 💡 헤더에 토큰 추가
+        'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
       },
     );
@@ -59,6 +58,11 @@ Future<List<dynamic>> fetchCircleList(String memberNo) async {
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
+
+// 🎨 앱 전체에서 사용할 주요 색상 정의 (라이온스클럽 테마: 네이비 & 골드)
+const Color primaryNavy = Color(0xFF003366);
+const Color primaryGold = Color(0xFFFFC107);
+const Color bgColor = Color(0xFFF8F9FA);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -143,7 +147,7 @@ void unsubscribeAllTopics() async {
   await prefs.remove('prevClubNo');
   await prefs.remove('prevRegionNo');
   await prefs.remove('prevMemberNo');
-  await prefs.remove('access_token'); // 💡 수정됨: 로그아웃 시 토큰 삭제
+  await prefs.remove('access_token');
 }
 
 class MyHttpOverrides extends HttpOverrides {
@@ -171,11 +175,11 @@ class _LaunchGateState extends State<LaunchGate> {
 
   Future<void> _route() async {
     final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool(kAutoLoginEnabled) ?? false;
-    final phone = (prefs.getString(kAutoLoginPhone) ?? '').trim();
+    // 상수에 맞게 수정 필요 (예: 'autoLoginEnabled', 'autoLoginPhone' 등)
+    final enabled = prefs.getBool('autoLoginEnabled') ?? false;
+    final phone = (prefs.getString('autoLoginPhone') ?? '').trim();
 
     if (enabled && phone.isNotEmpty) {
-      // 자동 로그인 시도
       try {
         final res = await http.get(
           Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phone'),
@@ -186,9 +190,8 @@ class _LaunchGateState extends State<LaunchGate> {
         if (res.statusCode == 200) {
           final data = jsonDecode(decodedBody);
 
-          // 💡 수정됨: access_token 확인 및 갱신
           if (data is Map && data.containsKey('clubno') && data.containsKey('access_token')) {
-            await prefs.setString('access_token', data['access_token']); // 토큰 갱신
+            await prefs.setString('access_token', data['access_token']);
 
             final clubNo = data['clubno'].toString();
             final memberNo = data['memberno'].toString();
@@ -213,21 +216,20 @@ class _LaunchGateState extends State<LaunchGate> {
             return;
           }
         }
-      } catch (_) {
-        // 실패 시 아래에서 로그인으로 보냄
-      }
+      } catch (_) {}
     }
 
-    // 자동로그인 조건이 아니거나 실패하면 로그인 화면
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.yellow,
-      body: Center(child: CircularProgressIndicator()),
+    return Scaffold(
+      backgroundColor: primaryNavy, // 🎨 로딩 화면 색상 변경
+      body: Center(
+        child: CircularProgressIndicator(color: primaryGold),
+      ),
     );
   }
 }
@@ -238,8 +240,18 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '...',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      title: '국제라이온스협회 355-A지구',
+      theme: ThemeData(
+        primaryColor: primaryNavy,
+        scaffoldBackgroundColor: bgColor,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: primaryNavy,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: IconThemeData(color: primaryNavy),
+        ),
+      ),
       home: const LaunchGate(),
       routes: {
         '/login': (context) => const LoginScreen(),
@@ -272,12 +284,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   String _errorMessage = '';
 
-  String _clubNo = '';
-  String _memberNo = '';
-  String _mregionNo = '';
-  String _funcNo = '';
-  String _clubName = '';
-
   Future<void> _login() async {
     final phoneno = _usernameController.text.trim();
     if (phoneno.isEmpty) {
@@ -295,30 +301,27 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(decodedBody);
 
-        // 💡 수정됨: access_token 저장 로직 추가
         if (data.containsKey('clubno') && data.containsKey('access_token')) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('access_token', data['access_token']); // 토큰 저장
+          await prefs.setString('access_token', data['access_token']);
 
-          setState(() {
-            _clubNo = data['clubno'].toString();
-            _memberNo = data['memberno'].toString();
-            _mregionNo = data['regionno'].toString();
-            _funcNo = data['funcno'].toString();
-            _clubName = data['clubname'].toString();
-            _errorMessage = '';
-          });
-          subscribeToTopics(_mregionNo, _clubNo, _memberNo);
+          final clubNo = data['clubno'].toString();
+          final memberNo = data['memberno'].toString();
+          final mregionNo = data['regionno'].toString();
+          final funcNo = data['funcno'].toString();
+          final clubName = data['clubname'].toString();
+
+          subscribeToTopics(mregionNo, clubNo, memberNo);
           if (!mounted) return;
           Navigator.pushReplacementNamed(
             context,
             '/home',
             arguments: {
-              'clubNo': _clubNo,
-              'memberNo': _memberNo,
-              'regionNo': _mregionNo,
-              'funcNo': _funcNo,
-              'clubName': _clubName,
+              'clubNo': clubNo,
+              'memberNo': memberNo,
+              'regionNo': mregionNo,
+              'funcNo': funcNo,
+              'clubName': clubName,
             },
           );
         } else if (data.containsKey('error')) {
@@ -346,96 +349,116 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.yellow,
-      appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        title: const Text('국제라이온스협회 355-A지구 지역주소록'),
-        elevation: 0,
-      ),
+      backgroundColor: Colors.white, // 🎨 배경색 변경
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final viewInsets = MediaQuery.of(context).viewInsets;
-            final bottomPad = 24.0 + viewInsets.bottom;
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(20, 32, 20, bottomPad),
-                keyboardDismissBehavior:
-                ScrollViewKeyboardDismissBehavior.onDrag,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 32,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 🎨 로고 영역
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey.shade50,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Image.asset(
+                      'assets/loginlogo.png',
+                      width: 150,
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      LayoutBuilder(
-                        builder: (ctx, c) {
-                          final maxLogoSide =
-                              (c.maxWidth).clamp(0, 420) * 0.7;
-                          return Column(
-                            children: [
-                              Image.asset(
-                                'assets/loginlogo.png',
-                                width: maxLogoSide,
-                                height: maxLogoSide,
-                                fit: BoxFit.contain,
-                              ),
-                              const SizedBox(height: 12),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 40),
-                      TextField(
-                        controller: _usernameController,
-                        decoration: const InputDecoration(
-                          labelText: '전화번호',
-                          hintText: '숫자만 입력',
-                          border: OutlineInputBorder(),
-                        ),
-                        textInputAction: TextInputAction.done,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        onSubmitted: (_) => _login(),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_errorMessage.isNotEmpty)
-                        Text(
-                          _errorMessage,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 13,
-                          ),
-                        ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _login,
-                          style: ElevatedButton.styleFrom(
-                            textStyle: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          child: const Text('로그인'),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Opacity(
-                        opacity: 0.7,
-                      ),
-                    ],
+                  const SizedBox(height: 32),
+                  const Text(
+                    '국제라이온스협회 355-A지구',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: primaryNavy,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '지역주소록 로그인',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+
+                  // 🎨 텍스트 필드 디자인
+                  TextField(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
+                      labelText: '전화번호',
+                      hintText: '숫자만 입력해주세요',
+                      prefixIcon: const Icon(Icons.phone_iphone, color: primaryNavy),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: primaryNavy, width: 2),
+                      ),
+                    ),
+                    textInputAction: TextInputAction.done,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onSubmitted: (_) => _login(),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_errorMessage.isNotEmpty)
+                    Text(
+                      _errorMessage,
+                      style: const TextStyle(color: Colors.redAccent, fontSize: 14),
+                    ),
+                  const SizedBox(height: 24),
+
+                  // 🎨 로그인 버튼 디자인
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryNavy,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: const Text(
+                        '로그인',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
@@ -481,8 +504,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final args = ModalRoute.of(context)?.settings.arguments
-      as Map<String, dynamic>?;
+      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final String? memberNo = args?['memberNo'];
       if (memberNo != null && memberNo.isNotEmpty) {
         final list = await fetchCircleList(memberNo);
@@ -505,8 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkForUpdate() async {
     try {
       final updateInfo = await InAppUpdate.checkForUpdate();
-      if (updateInfo.updateAvailability ==
-          UpdateAvailability.updateAvailable) {
+      if (updateInfo.updateAvailability == UpdateAvailability.updateAvailable) {
         await InAppUpdate.performImmediateUpdate();
       }
     } catch (e) {
@@ -514,10 +535,66 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // 🎨 대시보드 스타일의 메뉴 버튼 빌더
+  Widget _buildMenuCard({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 140, // 👈 1. 모든 버튼이 동일한 크기를 가지도록 고정 높이 추가
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+            border: Border.all(color: Colors.grey.shade100),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center, // 👈 2. 내부 콘텐츠를 수직 중앙 정렬
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: primaryNavy.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 32, color: primaryNavy),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                  height: 1.2, // 텍스트 줄간격 조정
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments
-    as Map<String, dynamic>?;
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final String? mclubNo = args?['clubNo'];
     final String? clubNo = args?['clubNo'];
     final String? memberNo = args?['memberNo'];
@@ -525,29 +602,31 @@ class _HomeScreenState extends State<HomeScreen> {
     final String? mfuncNo = args?['funcNo'];
     final String? clubName = args?['clubName'] ?? args?['clubname'];
     final imageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
+
+    String appBarTitle = '주소록';
+    if (mfuncNo == '1') {
+      appBarTitle = (mclubNo != null && mclubNo.isNotEmpty) ? '$clubName 주소록' : '로그아웃됨';
+    } else if (mfuncNo == '2'){
+      appBarTitle = (mclubNo != null && mclubNo.isNotEmpty) ? '소속 모임 주소록' : '로그아웃됨';
+    } else {
+      appBarTitle = (mregionNo != null && mregionNo.isNotEmpty) ? '$mregionNo 지역 회원 주소록' : '로그아웃됨';
+    }
+
     return Scaffold(
+      backgroundColor: bgColor, // 🎨 배경색 변경
       appBar: AppBar(
-        backgroundColor: Colors.yellow,
         title: Text(
-          (mfuncNo == '1')
-              ? ((mclubNo != null && mclubNo.isNotEmpty)
-              ? '$clubName 주소록'
-              : '$clubName 주소록 로그아웃')
-              : ((mregionNo != null && mregionNo.isNotEmpty)
-              ? '$mregionNo 지역 회원 주소록'
-              : '지역주소록 로그아웃'),
+          appBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onSelected: (value) {
               if (value == 'request') {
                 if (mclubNo != null) {
-                  Navigator.pushNamed(
-                    context,
-                    '/request',
-                    arguments: memberNo,
-                  );
+                  Navigator.pushNamed(context, '/request', arguments: memberNo);
                 } else {
                   _showSessionExpired(context);
                 }
@@ -570,69 +649,83 @@ class _HomeScreenState extends State<HomeScreen> {
             itemBuilder: (context) => const [
               PopupMenuItem(
                 value: 'request',
-                child: Text('데이터수정 요청하기'),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_document, color: primaryNavy, size: 20),
+                    SizedBox(width: 12),
+                    Text('데이터수정 요청하기'),
+                  ],
+                ),
               ),
               PopupMenuItem(
                 value: 'setting',
-                child: Text('설정변경'),
+                child: Row(
+                  children: [
+                    Icon(Icons.settings, color: primaryNavy, size: 20),
+                    SizedBox(width: 12),
+                    Text('설정변경'),
+                  ],
+                ),
               ),
             ],
           ),
         ],
       ),
-      backgroundColor: Colors.yellow,
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🎨 상단 메인 이미지 배너
               Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    border: Border.all(color: Colors.black, width: 2),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withAlpha((0.5 * 255).toInt()),
-                        blurRadius: 5,
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
                         spreadRadius: 2,
-                        offset: const Offset(0, 3),
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
                     child: (mregionNo != null && mregionNo.isNotEmpty)
                         ? Image.network(
                       imageUrl,
                       width: double.infinity,
-                      height: 400,
+                      height: 250,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          'assets/loginlogo.png',
-                          width: double.infinity,
-                          height: 300,
-                          fit: BoxFit.contain,
-                        );
+                        return _buildFallbackImage();
                       },
                     )
-                        : Image.asset(
-                      'assets/loginlogo.png',
-                      width: double.infinity,
-                      height: 300,
-                      fit: BoxFit.contain,
-                    ),
+                        : _buildFallbackImage(),
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                child: Text(
+                  '메뉴',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: primaryNavy,
+                  ),
+                ),
+              ),
+
+              // 🎨 대시보드 형태의 버튼 리스트
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: _buildButtons(
                     context,
                     mfuncNo,
@@ -644,9 +737,24 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 30),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackImage() {
+    return Container(
+      color: Colors.grey.shade100,
+      width: double.infinity,
+      height: 250,
+      child: Center(
+        child: Image.asset(
+          'assets/loginlogo.png',
+          width: 150,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -662,282 +770,233 @@ class _HomeScreenState extends State<HomeScreen> {
       String? clubName,
       ) {
     List<Widget> widgets = [];
-    if (mfuncNo == '1') {
+
+    // 🌟 1. 써클 모드 (mfuncNo == '2')
+    if (mfuncNo == '2') {
       widgets.addAll([
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/cmList',
-                    arguments: {
-                      'mregionNo': mregionNo,
-                      'mclubNo': mclubNo,
-                      'clubNo': clubNo,
-                      'clubName': clubName,
-                    },
-                  );
-                },
-                child: Text(
-                  '$clubName 회원목록',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/csearch',
-                    arguments: {
-                      'mregionNo': mregionNo,
-                      'mclubNo': mclubNo,
-                      'clubNo': clubNo,
-                      'mfuncNo': mfuncNo,
-                      'memberNo': memberNo,
-                    },
-                  );
-                },
-                child: Text(
-                  '$clubName 클럽회원검색',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            _buildMenuCard(
+              title: '써클 목록',
+              icon: Icons.stars,
+              onTap: () {
+                Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
+              },
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/notice',
-                    arguments: {
-                      'mregionNo': mregionNo,
-                      'mclubNo': mclubNo,
-                      'clubNo': clubNo,
-                      'mfuncNo': mfuncNo,
-                      'memberNo': memberNo,
-                    },
-                  );
-                },
-                child: Text(
-                  '$clubName 공지사항',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            // 💡 써클 문서함을 제외하고 공지사항만 남겨두면 Expanded 속성에 의해 가로 전체를 차지하게 됩니다.
+            _buildMenuCard(
+              title: '써클 공지사항',
+              icon: Icons.campaign,
+              onTap: () {
+                // 💡 기존에 만들어둔 공지사항 화면으로 연결 (써클 공지 탭만 뜨도록 처리됨)
+                Navigator.pushNamed(context, '/notice', arguments: {
+                  'mregionNo': mregionNo,
+                  'mclubNo': mclubNo,
+                  'clubNo': clubNo,
+                  'mfuncNo': mfuncNo,
+                  'memberNo': memberNo,
+                  'clubName': clubName,
+                });
+              },
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/clubDocs',
-                      arguments: mclubNo,
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '클럽 문서 목록',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            if (_circleList.isNotEmpty)
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/circleList',
-                      arguments: {
-                        'memberNo': memberNo,
-                      },
-                    );
-                  },
-                  child: const Text('써클 목록'),
-                ),
-              ),
           ],
         ),
       ]);
-    } else {
+    }
+    // 🌟 2. 기존 클럽 모드
+    else if (mfuncNo == '1') {
       widgets.addAll([
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/clubList',
-                      arguments: {
-                        'mregionNo': mregionNo,
-                        'mclubNo': mclubNo,
-                        'clubNo': clubNo,
-                      },
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '클럽별 회원 목록',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            _buildMenuCard(
+              title: '$clubName\n회원목록',
+              icon: Icons.groups,
+              onTap: () {
+                Navigator.pushNamed(context, '/cmList', arguments: {
+                  'mregionNo': mregionNo,
+                  'mclubNo': mclubNo,
+                  'clubNo': clubNo,
+                  'clubName': clubName,
+                });
+              },
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/rankMembers',
-                      arguments: {
-                        'mregionNo': mregionNo,
-                        'mclubNo': mclubNo,
-                        'clubNo': clubNo,
-                      },
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '직책별 회원 목록',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            const SizedBox(width: 12),
+            _buildMenuCard(
+              title: '$clubName\n클럽회원검색',
+              icon: Icons.person_search,
+              onTap: () {
+                Navigator.pushNamed(context, '/csearch', arguments: {
+                  'mregionNo': mregionNo,
+                  'mclubNo': mclubNo,
+                  'clubNo': clubNo,
+                  'mfuncNo': mfuncNo,
+                  'memberNo': memberNo,
+                });
+              },
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/search',
-                      arguments: {
-                        'mregionNo': mregionNo,
-                        'mclubNo': mclubNo,
-                        'clubNo': clubNo,
-                      },
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '키워드 회원 검색',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            _buildMenuCard(
+              title: '$clubName\n공지사항',
+              icon: Icons.campaign,
+              onTap: () {
+                Navigator.pushNamed(context, '/notice', arguments: {
+                  'mregionNo': mregionNo,
+                  'mclubNo': mclubNo,
+                  'clubNo': clubNo,
+                  'mfuncNo': mfuncNo,
+                  'memberNo': memberNo,
+                });
+              },
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/clubDocs',
-                      arguments: mclubNo,
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '클럽 문서 목록',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            const SizedBox(width: 12),
+            _buildMenuCard(
+              title: '클럽 문서 목록',
+              icon: Icons.folder_shared,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/clubDocs', arguments: mclubNo);
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 12),
+        if (_circleList.isNotEmpty)
+          Row(
+            children: [
+              _buildMenuCard(
+                title: '써클 목록',
+                icon: Icons.stars,
+                onTap: () {
+                  Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
+                },
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Container()), // 빈 공간 채우기
+            ],
+          ),
+      ]);
+    }
+    // 🌟 3. 기존 지역/지구 모드
+    else {
+      widgets.addAll([
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (mclubNo != null) {
-                    Navigator.pushNamed(
-                      context,
-                      '/notice',
-                      arguments: {
-                        'mregionNo': mregionNo,
-                        'mclubNo': mclubNo,
-                        'clubNo': clubNo,
-                        'memberNo': memberNo,
-                        'mfuncNo': mfuncNo,
-                        'clubName': clubName,
-                      },
-                    );
-                  } else {
-                    _showSessionExpired(context);
-                  }
-                },
-                child: const Text(
-                  '공지사항',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            _buildMenuCard(
+              title: '클럽별 회원 목록',
+              icon: Icons.list_alt,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/clubList', arguments: {
+                    'mregionNo': mregionNo,
+                    'mclubNo': mclubNo,
+                    'clubNo': clubNo,
+                  });
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
+            _buildMenuCard(
+              title: '직책별 회원 목록',
+              icon: Icons.badge,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/rankMembers', arguments: {
+                    'mregionNo': mregionNo,
+                    'mclubNo': mclubNo,
+                    'clubNo': clubNo,
+                  });
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildMenuCard(
+              title: '키워드 회원 검색',
+              icon: Icons.search,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/search', arguments: {
+                    'mregionNo': mregionNo,
+                    'mclubNo': mclubNo,
+                    'clubNo': clubNo,
+                  });
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+            const SizedBox(width: 12),
+            _buildMenuCard(
+              title: '클럽 문서 목록',
+              icon: Icons.folder_shared,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/clubDocs', arguments: mclubNo);
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _buildMenuCard(
+              title: '공지사항',
+              icon: Icons.campaign,
+              onTap: () {
+                if (mclubNo != null) {
+                  Navigator.pushNamed(context, '/notice', arguments: {
+                    'mregionNo': mregionNo,
+                    'mclubNo': mclubNo,
+                    'clubNo': clubNo,
+                    'memberNo': memberNo,
+                    'mfuncNo': mfuncNo,
+                    'clubName': clubName,
+                  });
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+            const SizedBox(width: 12),
             if (_circleList.isNotEmpty)
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/circleList',
-                      arguments: {
-                        'memberNo': memberNo,
-                      },
-                    );
-                  },
-                  child: const Text('써클 목록'),
-                ),
-              ),
+              _buildMenuCard(
+                title: '써클 목록',
+                icon: Icons.stars,
+                onTap: () {
+                  Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
+                },
+              )
+            else
+              Expanded(child: Container()), // 빈 공간 채우기
           ],
         ),
       ]);
     }
     return widgets;
   }
+
 
   void _showSessionExpired(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(

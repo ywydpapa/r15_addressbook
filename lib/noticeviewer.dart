@@ -57,14 +57,23 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
     noticeType = argNoticeType ?? "";
     memberNo = argMemberNo is int ? argMemberNo : int.tryParse(argMemberNo.toString()) ?? 0;
 
-    final isClub = (argMfuncNo == '1');
-    _fetchHtmlData(isClub: isClub);
+    // 💡 isClub 변수 제거하고 바로 _fetchHtmlData 호출 (noticeType은 이미 클래스 변수에 저장됨)
+    _fetchHtmlData();
   }
 
-  Future<void> _fetchHtmlData({required bool isClub}) async {
-    final url = isClub
-        ? "${ApiConf.baseUrl}/phapp/clubnoticeViewer/$noticeNo"
-        : "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
+  // 💡 파라미터(isClub)를 없애고 noticeType에 따라 URL을 분기하도록 수정
+  Future<void> _fetchHtmlData() async {
+    String url;
+
+    // 🌟 noticeType에 따라 정확한 백엔드 API 호출
+    if (noticeType == 'CLUB') {
+      url = "${ApiConf.baseUrl}/phapp/clubnoticeViewer/$noticeNo";
+    } else if (noticeType == 'CIRCLE') {
+      url = "${ApiConf.baseUrl}/phapp/circlenoticeViewer/$noticeNo";
+    } else {
+      // REGION (지역 공지)
+      url = "${ApiConf.baseUrl}/phapp/noticeViewer/$noticeNo";
+    }
 
     try {
       // 1. 저장된 토큰 불러오기
@@ -81,7 +90,6 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
       );
 
       if (res.statusCode != 200) {
-        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         throw Exception("서버 에러 발생!\n상태 코드: ${res.statusCode}\n응답 내용: ${res.body}");
       }
 
