@@ -9,13 +9,13 @@ class ApiConf {
   //static String baseUrl = 'http://127.0.0.1:8000';
 
   // [안드로이드 에뮬레이터 테스트용]
-  static String baseUrl = 'http://10.0.2.2:8000';
+  //static String baseUrl = 'http://10.0.2.2:8000';
 
   // [실제 스마트폰 기기 테스트용 (PC의 내부 IP 입력)]
   // static String baseUrl = 'http://192.168.0.15:8000';
 
   // [운영 서버용 (배포 시 주석 해제)]
-  // static String baseUrl = 'https://lionsaddr.biz-core.co.kr';
+  static String baseUrl = 'https://lionsaddr.biz-core.co.kr';
 
   static Future<void> init() async {
     // 로컬 테스트용 주소일 경우 DNS Lookup(운영서버 IP 찾기)을 생략합니다.
