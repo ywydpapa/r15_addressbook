@@ -700,7 +700,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       imageUrl,
                       width: double.infinity,
                       height: 250,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         return _buildFallbackImage();
                       },
