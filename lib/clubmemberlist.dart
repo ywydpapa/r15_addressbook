@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'membertab.dart';
+import 'membertabext.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Member {
   final int memberNo;
@@ -22,14 +23,15 @@ class Member {
 
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
-      memberNo: json['memberNo'],
-      memberName: json['memberName'],
-      memberPhone: json['memberPhone'] ?? '',
-      rankTitle: json['rankTitle'] ?? '',
-      clubRank: json['clubRank'] ?? '',
+      memberNo: json['memberNo'] ?? 0,
+      memberName: json['memberName']?.toString() ?? json['memberCName']?.toString() ?? json['name']?.toString() ?? '이름 없음',
+      memberPhone: json['memberPhone']?.toString() ?? json['phone']?.toString() ?? '',
+      rankTitle: json['rankTitle']?.toString() ?? '',
+      clubRank: json['clubRank']?.toString() ?? '',
     );
   }
 }
+
 
 class ClubMemberListScreen extends StatefulWidget {
   const ClubMemberListScreen({super.key});
@@ -42,6 +44,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
   late int clubNo;
   late String clubName;
   String? mclubNo;
+  String? funcNo;
 
   late Future<List<Member>> _memberList;
   List<Member> _allMembers = [];
@@ -55,9 +58,12 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
     super.didChangeDependencies();
     if (!_initialized) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
-      clubNo = int.parse(args['clubNo']);
+      clubNo = int.parse(args['clubNo'].toString());
       clubName = args['clubName'];
-      mclubNo = args['mclubNo'];
+      mclubNo = args['mclubNo']?.toString();
+      // 💡 main.dart에서 'mfuncNo'로 넘겨주므로 안전하게 둘 다 체크
+      funcNo = (args['mfuncNo'] ?? args['funcNo'])?.toString();
+
       _memberList = fetchClubMemberList(clubNo);
       _searchController.addListener(_filterMembers);
       _initialized = true;
@@ -71,13 +77,15 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
   }
 
   Future<List<Member>> fetchClubMemberList(int clubNo) async {
-    // 1. 저장된 토큰 불러오기
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token') ?? '';
 
-    // 2. 헤더에 토큰을 담아서 GET 요청 보내기
+    final String endpoint = (funcNo == '4')
+        ? '/phapp/memberListext/$clubNo'
+        : '/phapp/memberList/$clubNo';
+
     final response = await http.get(
-      Uri.parse('${ApiConf.baseUrl}/phapp/memberList/$clubNo'),
+      Uri.parse('${ApiConf.baseUrl}$endpoint'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -88,6 +96,14 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
       final decodedResponse = utf8.decode(response.bodyBytes);
       Map<String, dynamic> data = json.decode(decodedResponse);
       List<dynamic> members = data['members'];
+
+      members.removeWhere((item) =>
+      item['phone'] == '35500150042' ||
+          item['phoneno'] == '35500150042' ||
+          item['mobile'] == '35500150042' ||
+          item['memberPhone'] == '35500150042'
+      );
+
       List<Member> memberList =
       members.map((json) => Member.fromJson(json)).toList();
 
@@ -95,10 +111,8 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
         _allMembers = memberList;
         _filteredMembers = memberList;
       });
-
       return memberList;
     } else {
-      // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
       throw Exception('서버 에러 발생!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}');
     }
   }
@@ -115,10 +129,13 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 💡 게스트 여부에 따라 상단 타이틀 변경
+    final String appBarTitle = (funcNo == '4') ? 'Member List' : '$clubName 회원 목록';
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.yellow,
-        title: Text('$clubName 회원 목록'),
+        title: Text(appBarTitle),
       ),
       backgroundColor: Colors.yellow,
       body: SafeArea(
@@ -130,8 +147,9 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  labelText: '검색',
-                  hintText: '이름 또는 전화번호로 검색',
+                  // 💡 게스트 여부에 따라 검색창 텍스트 변경
+                  labelText: (funcNo == '4') ? 'Search' : '검색',
+                  hintText: (funcNo == '4') ? 'Search by name or phone' : '이름 또는 전화번호로 검색',
                   prefixIcon: Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8.0),
@@ -147,7 +165,6 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    // 에러 메시지를 화면 중앙에 표시
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -159,21 +176,18 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                       ),
                     );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('No members found'));
+                    return Center(child: Text((funcNo == '4') ? 'No members found' : '회원 정보가 없습니다.'));
                   } else {
                     return InteractiveViewer(
-                      panEnabled: true, // 화면 이동 허용
-                      scaleEnabled: true, // 확대/축소 허용
+                      panEnabled: true,
+                      scaleEnabled: true,
                       minScale: 0.8,
                       maxScale: 3.0,
                       child: ListView.builder(
                         itemCount: _filteredMembers.length,
                         itemBuilder: (context, index) {
                           final member = _filteredMembers[index];
-
-                          // 💡 썸네일 이미지 경로에 mphoto_ 추가
-                          final imageUrl =
-                              '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
+                          final imageUrl = '${ApiConf.baseUrl}/thumbnails/mphoto_${member.memberNo}.png';
 
                           return Card(
                             margin: EdgeInsets.all(8.0),
@@ -192,7 +206,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Image.asset(
-                                        'assets/defaultphoto.png', // 💡 기본 이미지 파일명 확인 (default.png -> defaultphoto.png)
+                                        'assets/defaultphoto.png',
                                         fit: BoxFit.cover,
                                       );
                                     },
@@ -203,11 +217,16 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // 💡 게스트 여부에 따라 직책 텍스트 변경 (RANK)
                                   (mclubNo.toString() == clubNo.toString() && member.clubRank.isNotEmpty)
-                                      ? Text('클럽직책: ${member.clubRank}')
-                                      : Text('직책: ${member.rankTitle ?? ""}'),
+                                      ? Text((funcNo == '4') ? 'RANK: ${member.clubRank}' : '클럽직책: ${member.clubRank}')
+                                      : Text((funcNo == '4') ? 'RANK: ${member.rankTitle ?? ""}' : '직책: ${member.rankTitle ?? ""}'),
+
+                                  // 💡 게스트 여부에 따라 연락처 텍스트 변경 (Mobile No)
                                   Text(
-                                    '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
+                                    (funcNo == '4')
+                                        ? 'Mobile No: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}'
+                                        : '연락처: ${member.memberPhone.isEmpty ? "N/A" : member.memberPhone}',
                                   ),
                                 ],
                               ),
@@ -215,11 +234,24 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => MemberDetailScreen(
-                                      memberNo: member.memberNo,
-                                      memberName: member.memberName,
-                                      mclubNo: mclubNo,
-                                    ),
+                                    builder: (context) {
+                                      // 🌟 게스트 모드일 경우 영문/한자 전용 페이지로 이동
+                                      if (funcNo == '4') {
+                                        return MemberDetailExtScreen(
+                                          memberNo: member.memberNo,
+                                          memberName: member.memberName,
+                                          mclubNo: mclubNo,
+                                        );
+                                      }
+                                      // 🌟 일반 모드일 경우 기존 한글 페이지로 이동
+                                      else {
+                                        return MemberDetailScreen(
+                                          memberNo: member.memberNo,
+                                          memberName: member.memberName,
+                                          mclubNo: mclubNo,
+                                        );
+                                      }
+                                    },
                                   ),
                                 );
                               },

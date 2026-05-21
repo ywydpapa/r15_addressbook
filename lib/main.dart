@@ -175,64 +175,25 @@ class _LaunchGateState extends State<LaunchGate> {
 
   Future<void> _route() async {
     final prefs = await SharedPreferences.getInstance();
-    // 상수에 맞게 수정 필요 (예: 'autoLoginEnabled', 'autoLoginPhone' 등)
     final enabled = prefs.getBool('autoLoginEnabled') ?? false;
     final phone = (prefs.getString('autoLoginPhone') ?? '').trim();
 
     if (enabled && phone.isNotEmpty) {
-      // ==========================================
-      // 🌟 게스트 자동 로그인 처리 추가
-      // ==========================================
-      if (phone.startsWith('355') && phone.length == 11) {
-        try {
-          final regionNo = int.parse(phone.substring(3, 7)).toString();
-          final clubNo = int.parse(phone.substring(7, 11)).toString();
-          final memberNo = 'guest';
-          final funcNo = '1';
-          final clubName = '게스트 로그인';
-
-          subscribeToTopics(regionNo, clubNo, memberNo);
-
-          if (!mounted) return;
-          Navigator.pushReplacementNamed(
-            context,
-            '/home',
-            arguments: {
-              'clubNo': clubNo,
-              'memberNo': memberNo,
-              'regionNo': regionNo,
-              'funcNo': funcNo,
-              'clubName': clubName,
-            },
-          );
-          return;
-        } catch (_) {}
-      }
-
-      // ==========================================
-      // 🌟 기존 API 자동 로그인 로직
-      // ==========================================
       try {
         final res = await http.get(
           Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phone'),
         );
-
         final decodedBody = utf8.decode(res.bodyBytes);
-
         if (res.statusCode == 200) {
           final data = jsonDecode(decodedBody);
-
           if (data is Map && data.containsKey('clubno') && data.containsKey('access_token')) {
             await prefs.setString('access_token', data['access_token']);
-
             final clubNo = data['clubno'].toString();
             final memberNo = data['memberno'].toString();
             final regionNo = data['regionno'].toString();
             final funcNo = data['funcno'].toString();
             final clubName = data['clubname'].toString();
-
             subscribeToTopics(regionNo, clubNo, memberNo);
-
             if (!mounted) return;
             Navigator.pushReplacementNamed(
               context,
@@ -254,6 +215,8 @@ class _LaunchGateState extends State<LaunchGate> {
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
+
+
 
 
   @override
@@ -326,53 +289,8 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // ==========================================
-    // 🌟 게스트 로그인 (355로 시작하는 11자리 번호) 처리
-    // ==========================================
-    if (phoneno.startsWith('355') && phoneno.length == 11) {
-      try {
-        final regionNo = int.parse(phoneno.substring(3, 7)).toString();
-        final clubNo = int.parse(phoneno.substring(7, 11)).toString();
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('access_token', 'guest_token');
-
-        final memberNo = 'guest_${DateTime.now().millisecondsSinceEpoch}';
-        final funcNo = '4'; // 💡
-        final clubName = 'GUEST';
-
-        subscribeToTopics(regionNo, clubNo, memberNo);
-
-        // 💡 게스트 로그인 시 자동 로그인을 위해 전화번호와 활성화 상태 저장
-        await prefs.setBool('autoLoginEnabled', true);
-        await prefs.setString('autoLoginPhone', phoneno);
-
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(
-          context,
-          '/home',
-          arguments: {
-            'clubNo': clubNo,
-            'memberNo': memberNo,
-            'regionNo': regionNo,
-            'funcNo': funcNo,
-            'clubName': clubName,
-          },
-        );
-        return;
-      } catch (e) {
-        setState(() {
-          _errorMessage = '게스트 로그인 번호 형식이 올바르지 않습니다.';
-        });
-        return;
-      }
-    }
-
-
-    // ==========================================
-    // 🌟 기존 일반 로그인 (API 호출) 처리
-    // ==========================================
     try {
+      // 무조건 서버로 로그인 요청
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
       );
@@ -385,6 +303,9 @@ class _LoginScreenState extends State<LoginScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('access_token', data['access_token']);
 
+          // 자동 로그인 정보 저장
+          await prefs.setBool('autoLoginEnabled', true);
+          await prefs.setString('autoLoginPhone', phoneno);
           final clubNo = data['clubno'].toString();
           final memberNo = data['memberno'].toString();
           final mregionNo = data['regionno'].toString();
@@ -392,6 +313,7 @@ class _LoginScreenState extends State<LoginScreen> {
           final clubName = data['clubname'].toString();
 
           subscribeToTopics(mregionNo, clubNo, memberNo);
+
           if (!mounted) return;
           Navigator.pushReplacementNamed(
             context,
@@ -424,6 +346,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
 
 
   @override
@@ -587,7 +510,8 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final String? memberNo = args?['memberNo'];
-      if (memberNo != null && memberNo.isNotEmpty) {
+      final String? mfuncNo = args?['funcNo'];
+      if (memberNo != null && memberNo.isNotEmpty && mfuncNo != '4' && !memberNo.startsWith('guest')) {
         final list = await fetchCircleList(memberNo);
         if (mounted) {
           setState(() {
@@ -603,6 +527,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+
   }
 
   Future<void> _checkForUpdate() async {
@@ -689,6 +614,8 @@ class _HomeScreenState extends State<HomeScreen> {
       appBarTitle = (mclubNo != null && mclubNo.isNotEmpty) ? '$clubName 주소록' : '로그아웃됨';
     } else if (mfuncNo == '2'){
       appBarTitle = (mclubNo != null && mclubNo.isNotEmpty) ? '소속 모임 주소록' : '로그아웃됨';
+    } else if (mfuncNo == '4'){
+      appBarTitle = (mclubNo != null && mclubNo.isNotEmpty) ? 'GUEST ADDRESSBOOK' : 'LOGOUT';
     } else {
       appBarTitle = (mregionNo != null && mregionNo.isNotEmpty) ? '$mregionNo 지역 회원 주소록' : '로그아웃됨';
     }
@@ -795,7 +722,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
                 child: Text(
-                  '메뉴',
+                  'MENU',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -860,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           children: [
             _buildMenuCard(
-              title: '클럽회원 목록\n(Member List)',
+              title: 'CLUB Member List',
               icon: Icons.groups,
               onTap: () {
                 Navigator.pushNamed(context, '/cmList', arguments: {
@@ -868,12 +795,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   'mclubNo': mclubNo,
                   'clubNo': clubNo,
                   'clubName': clubName,
-                  'mfuncNo': mfuncNo, // 회원 목록 화면으로 권한 전달
+                  'mfuncNo': mfuncNo,
                 });
               },
             ),
             const SizedBox(width: 12),
-            Expanded(child: Container()), // 빈 공간 채우기 (버튼 1개만 배치)
+            Expanded(child: Container()),
           ],
         ),
       ]);
