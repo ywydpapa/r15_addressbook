@@ -180,6 +180,38 @@ class _LaunchGateState extends State<LaunchGate> {
     final phone = (prefs.getString('autoLoginPhone') ?? '').trim();
 
     if (enabled && phone.isNotEmpty) {
+      // ==========================================
+      // 🌟 게스트 자동 로그인 처리 추가
+      // ==========================================
+      if (phone.startsWith('355') && phone.length == 11) {
+        try {
+          final regionNo = int.parse(phone.substring(3, 7)).toString();
+          final clubNo = int.parse(phone.substring(7, 11)).toString();
+          final memberNo = 'guest';
+          final funcNo = '1';
+          final clubName = '게스트 로그인';
+
+          subscribeToTopics(regionNo, clubNo, memberNo);
+
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(
+            context,
+            '/home',
+            arguments: {
+              'clubNo': clubNo,
+              'memberNo': memberNo,
+              'regionNo': regionNo,
+              'funcNo': funcNo,
+              'clubName': clubName,
+            },
+          );
+          return;
+        } catch (_) {}
+      }
+
+      // ==========================================
+      // 🌟 기존 API 자동 로그인 로직
+      // ==========================================
       try {
         final res = await http.get(
           Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phone'),
@@ -222,6 +254,7 @@ class _LaunchGateState extends State<LaunchGate> {
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, '/login');
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -292,6 +325,53 @@ class _LoginScreenState extends State<LoginScreen> {
       });
       return;
     }
+
+    // ==========================================
+    // 🌟 게스트 로그인 (355로 시작하는 11자리 번호) 처리
+    // ==========================================
+    if (phoneno.startsWith('355') && phoneno.length == 11) {
+      try {
+        final regionNo = int.parse(phoneno.substring(3, 7)).toString();
+        final clubNo = int.parse(phoneno.substring(7, 11)).toString();
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', 'guest_token');
+
+        final memberNo = 'guest_${DateTime.now().millisecondsSinceEpoch}';
+        final funcNo = '4'; // 💡
+        final clubName = 'GUEST';
+
+        subscribeToTopics(regionNo, clubNo, memberNo);
+
+        // 💡 게스트 로그인 시 자동 로그인을 위해 전화번호와 활성화 상태 저장
+        await prefs.setBool('autoLoginEnabled', true);
+        await prefs.setString('autoLoginPhone', phoneno);
+
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(
+          context,
+          '/home',
+          arguments: {
+            'clubNo': clubNo,
+            'memberNo': memberNo,
+            'regionNo': regionNo,
+            'funcNo': funcNo,
+            'clubName': clubName,
+          },
+        );
+        return;
+      } catch (e) {
+        setState(() {
+          _errorMessage = '게스트 로그인 번호 형식이 올바르지 않습니다.';
+        });
+        return;
+      }
+    }
+
+
+    // ==========================================
+    // 🌟 기존 일반 로그인 (API 호출) 처리
+    // ==========================================
     try {
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
@@ -344,6 +424,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -638,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     arguments: {
                       'clubNo': mclubNo,
                       'memberNo': memberNo,
-                      'mfuncNo': mfuncNo,
+                      'mfuncNo': mfuncNo, // 💡 설정 화면으로 권한 번호 전달
                     },
                   );
                 } else {
@@ -646,18 +727,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'request',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit_document, color: primaryNavy, size: 20),
-                    SizedBox(width: 12),
-                    Text('데이터수정 요청하기'),
-                  ],
+            itemBuilder: (context) => [
+              if (mfuncNo != '4')
+                const PopupMenuItem(
+                  value: 'request',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit_document, color: primaryNavy, size: 20),
+                      SizedBox(width: 12),
+                      Text('데이터수정 요청하기'),
+                    ],
+                  ),
                 ),
-              ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'setting',
                 child: Row(
                   children: [
@@ -770,9 +852,34 @@ class _HomeScreenState extends State<HomeScreen> {
       String? clubName,
       ) {
     List<Widget> widgets = [];
-
+    // ==========================================
+    // 🌟 게스트 모드 (mfuncNo == '4')
+    // ==========================================
+    if (mfuncNo == '4') {
+      widgets.addAll([
+        Row(
+          children: [
+            _buildMenuCard(
+              title: '클럽회원 목록\n(Member List)',
+              icon: Icons.groups,
+              onTap: () {
+                Navigator.pushNamed(context, '/cmList', arguments: {
+                  'mregionNo': mregionNo,
+                  'mclubNo': mclubNo,
+                  'clubNo': clubNo,
+                  'clubName': clubName,
+                  'mfuncNo': mfuncNo, // 회원 목록 화면으로 권한 전달
+                });
+              },
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Container()), // 빈 공간 채우기 (버튼 1개만 배치)
+          ],
+        ),
+      ]);
+    }
     // 🌟 1. 써클 모드 (mfuncNo == '2')
-    if (mfuncNo == '2') {
+    else if (mfuncNo == '2') {
       widgets.addAll([
         Row(
           children: [

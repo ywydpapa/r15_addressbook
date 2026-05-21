@@ -13,12 +13,14 @@ class SettingScreen extends StatefulWidget {
   @override
   State<SettingScreen> createState() => _SettingScreenState();
 }
+
 class _SettingScreenState extends State<SettingScreen> {
   int _securityLevel = 0; // 0: 전체공개, 1: 1단계 비공개, 2: 2단계 비공개, 3: 전체 비공개
   int _operationMode = 0; // 0: 지역수첩, 1: 클럽수첩, 2: 모입수첩
   bool _isLoading = true;
 
   String? memberNo;
+  String? mfuncNo; // 💡 권한 확인용 변수 추가
 
   final List<String> _securityCodes = ['N', 'S', 'T', 'Y'];
   final List<String> _securityLabels = ['전체공개', '1단계 비공개', '2단계 비공개', '전체비공개'];
@@ -48,7 +50,6 @@ class _SettingScreenState extends State<SettingScreen> {
   Future<void> _setAutoLoginEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
 
-    // OFF로 바꾸면 전화번호도 같이 지우고 싶으면 여기서 제거
     if (!enabled) {
       await prefs.setBool(kAutoLoginEnabled, false);
       await prefs.remove(kAutoLoginPhone);
@@ -59,7 +60,6 @@ class _SettingScreenState extends State<SettingScreen> {
       return;
     }
 
-    // ON으로 바꿀 때 전화번호가 없으면 경고
     final phone = _autoLoginPhoneController.text.trim();
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,20 +98,26 @@ class _SettingScreenState extends State<SettingScreen> {
 
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
-      if (memberNo == null) {
-        memberNo = args['memberNo'];
-        _loadAutoLoginPrefs(); // 여기서 1회 로드
-        if (memberNo != null) {
-          _fetchSecurityLevel(memberNo!);
-        }
+      if (mfuncNo == null && args.containsKey('mfuncNo')) {
+        mfuncNo = args['mfuncNo'].toString();
+        setState(() {
+          _operationMode = int.tryParse(mfuncNo!) ?? 0;
+        });
       }
 
-      if (args.containsKey('mfuncNo')) {
-        final argFuncNo = args['mfuncNo'];
-        if (argFuncNo != null) {
-          setState(() {
-            _operationMode = int.tryParse(argFuncNo.toString()) ?? 0;
-          });
+      if (memberNo == null) {
+        memberNo = args['memberNo'];
+        _loadAutoLoginPrefs();
+
+        if (memberNo != null) {
+          // 💡 게스트(4)일 경우 서버에 설정 정보를 요청하지 않고 로딩 종료
+          if (mfuncNo == '4') {
+            setState(() => _isLoading = false);
+          } else {
+            _fetchSecurityLevel(memberNo!);
+          }
+        } else {
+          setState(() => _isLoading = false);
         }
       }
     }
@@ -121,11 +127,9 @@ class _SettingScreenState extends State<SettingScreen> {
     setState(() => _isLoading = true);
     final url = '${ApiConf.baseUrl}/phapp/getmask/$memberNo';
     try {
-      // 1. 저장된 토큰 불러오기
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
 
-      // 2. 헤더에 토큰을 담아서 GET 요청 보내기
       final response = await http.get(
         Uri.parse(url),
         headers: {
@@ -144,7 +148,6 @@ class _SettingScreenState extends State<SettingScreen> {
         });
       } else {
         setState(() => _isLoading = false);
-        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('설정 정보 로드 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
@@ -162,11 +165,9 @@ class _SettingScreenState extends State<SettingScreen> {
     String code = _securityCodes[level];
     final url = '${ApiConf.baseUrl}/phapp/maskYN/$memberNo/$code';
     try {
-      // 1. 저장된 토큰 불러오기
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
 
-      // 2. 헤더에 토큰을 담아서 POST 요청 보내기
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -176,7 +177,6 @@ class _SettingScreenState extends State<SettingScreen> {
       );
 
       if (response.statusCode != 200) {
-        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('설정 변경 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
@@ -192,11 +192,9 @@ class _SettingScreenState extends State<SettingScreen> {
     if (memberNo == null) return;
     final url = '${ApiConf.baseUrl}/phapp/funcNo/$memberNo/$mode';
     try {
-      // 1. 저장된 토큰 불러오기
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
 
-      // 2. 헤더에 토큰을 담아서 POST 요청 보내기
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -206,7 +204,6 @@ class _SettingScreenState extends State<SettingScreen> {
       );
 
       if (response.statusCode != 200) {
-        // 💡 에러 발생 시 상태 코드와 내용을 화면에 출력하도록 수정
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('운영설정 변경 실패!\n상태 코드: ${response.statusCode}\n응답 내용: ${response.body}')),
         );
@@ -232,95 +229,97 @@ class _SettingScreenState extends State<SettingScreen> {
         padding: const EdgeInsets.all(24.0),
         child: ListView(
           children: [
-            // 개인정보 공개 수준
-            Text(
-              '개인정보 공개 수준설정',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Slider(
-              value: _securityLevel.toDouble(),
-              min: 0,
-              max: 3,
-              divisions: 3,
-              label: _securityLabels[_securityLevel],
-              onChanged: (double value) async {
-                setState(() => _securityLevel = value.round());
-                await _updateSecurityLevel(_securityLevel);
-              },
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: List.generate(_securityLabels.length, (index) {
-                return Text(
-                  _securityLabels[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _securityLevel == index ? Colors.red : Colors.black,
-                  ),
-                );
-              }),
-            ),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Text(
-                _securityDescriptions[_securityLevel],
-                style: TextStyle(fontSize: 15, color: Colors.black87),
+            // 💡 게스트(4)가 아닐 때만 개인정보 공개 수준 및 운영설정 표시
+            if (mfuncNo != '4') ...[
+              // 개인정보 공개 수준
+              const Text(
+                '개인정보 공개 수준설정',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
-            const SizedBox(height: 20),
-
-            // 운영설정
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '운영설정',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // 버튼 3개이므로 3등분 (간격 약간 고려)
-                        double buttonWidth = (constraints.maxWidth / 3) - 4;
-
-                        return ToggleButtons(
-                          isSelected: [
-                            _operationMode == 0,
-                            _operationMode == 1,
-                            _operationMode == 2,
-                          ],
-                          onPressed: (int index) async {
-                            await _updateOperationMode(index);
-                            setState(() => _operationMode = index);
-                          },
-                          borderRadius: BorderRadius.circular(8),
-                          selectedColor: Colors.white,
-                          fillColor: Colors.orange,
-                          color: Colors.black,
-                          constraints: BoxConstraints(
-                            minHeight: 48,
-                            minWidth: buttonWidth,
-                          ),
-                          children: const [
-                            Text('지역수첩', style: TextStyle(fontSize: 16)),
-                            Text('클럽수첩', style: TextStyle(fontSize: 16)),
-                            Text('모임수첩', style: TextStyle(fontSize: 16)),
-                          ],
-                        );
-                      },
+              Slider(
+                value: _securityLevel.toDouble(),
+                min: 0,
+                max: 3,
+                divisions: 3,
+                label: _securityLabels[_securityLevel],
+                onChanged: (double value) async {
+                  setState(() => _securityLevel = value.round());
+                  await _updateSecurityLevel(_securityLevel);
+                },
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(_securityLabels.length, (index) {
+                  return Text(
+                    _securityLabels[index],
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _securityLevel == index ? Colors.red : Colors.black,
                     ),
-                  ),
-                ],
+                  );
+                }),
               ),
-            ),
-            const SizedBox(height: 20),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Text(
+                  _securityDescriptions[_securityLevel],
+                  style: const TextStyle(fontSize: 15, color: Colors.black87),
+                ),
+              ),
+              const SizedBox(height: 20),
 
-            Text(
+              // 운영설정
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '운영설정',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          double buttonWidth = (constraints.maxWidth / 3) - 4;
+
+                          return ToggleButtons(
+                            isSelected: [
+                              _operationMode == 0,
+                              _operationMode == 1,
+                              _operationMode == 2,
+                            ],
+                            onPressed: (int index) async {
+                              await _updateOperationMode(index);
+                              setState(() => _operationMode = index);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            selectedColor: Colors.white,
+                            fillColor: Colors.orange,
+                            color: Colors.black,
+                            constraints: BoxConstraints(
+                              minHeight: 48,
+                              minWidth: buttonWidth,
+                            ),
+                            children: const [
+                              Text('지역수첩', style: TextStyle(fontSize: 16)),
+                              Text('클럽수첩', style: TextStyle(fontSize: 16)),
+                              Text('모임수첩', style: TextStyle(fontSize: 16)),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+
+            // 💡 자동로그인 설정 (게스트 포함 모두에게 표시)
+            const Text(
               '자동로그인',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
@@ -347,7 +346,7 @@ class _SettingScreenState extends State<SettingScreen> {
               onSubmitted: (_) async => _saveAutoLoginPhone(),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
 
             SizedBox(
               height: 44,
@@ -361,7 +360,6 @@ class _SettingScreenState extends State<SettingScreen> {
                 child: const Text('저장'),
               ),
             ),
-            // 알림 설정
           ],
         ),
       ),

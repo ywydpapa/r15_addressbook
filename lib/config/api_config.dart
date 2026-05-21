@@ -12,7 +12,7 @@ class ApiConf {
   //static String baseUrl = 'http://10.0.2.2:8000';
 
   // [실제 스마트폰 기기 테스트용 (PC의 내부 IP 입력)]
-  // static String baseUrl = 'http://192.168.0.15:8000';
+  //static String baseUrl = 'https://192.168.11.3';
 
   // [운영 서버용 (배포 시 주석 해제)]
   static String baseUrl = 'https://lionsaddr.biz-core.co.kr';
@@ -32,7 +32,7 @@ class ApiConf {
       }
     } catch (e) {
       // lookup 실패 시 기존 도메인 사용
-      baseUrl = 'https://112.144.8.104';
+      baseUrl = 'https://125.184.193.192';
     }
   }
 }
