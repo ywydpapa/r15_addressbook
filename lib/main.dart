@@ -74,6 +74,11 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   await messaging.requestPermission();
+  await messaging.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -99,6 +104,17 @@ void main() async {
 void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  if (Platform.isIOS) {
+    String? apnsToken = await messaging.getAPNSToken();
+    if (apnsToken == null) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      apnsToken = await messaging.getAPNSToken();
+      if (apnsToken == null) {
+        print('iOS APNs 토큰 발급 실패 - 알림 구독이 안 될 수 있습니다.');
+      }
+    }
+  }
 
   final regionTopic = 'region_$regionNo';
   final clubTopic = 'club_$clubNo';
@@ -487,8 +503,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-      if (notification != null && android != null) {
+
+      // android 객체 확인은 Android 전용 채널 설정을 위해서만 사용하거나,
+      // 알림 표출 조건에서는 제외해야 합니다.
+      if (notification != null) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -502,10 +520,17 @@ class _HomeScreenState extends State<HomeScreen> {
               priority: Priority.high,
               icon: '@mipmap/ic_launcher',
             ),
+            // iOS용 알림 설정 추가
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
         );
       }
     });
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
