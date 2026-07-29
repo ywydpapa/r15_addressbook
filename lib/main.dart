@@ -65,15 +65,16 @@ const Color primaryGold = Color(0xFFFFC107);
 const Color bgColor = Color(0xFFF8F9FA);
 
 void main() async {
+  // 1. Flutter 프레임워크 초기화 (반드시 가장 먼저 호출)
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    print(e);
-  }
+
+  // 2. Firebase 초기화
+  await Firebase.initializeApp();
+
+  // 3. 백그라운드 메시지 핸들러 등록 (최상단에 선언된 함수 연결)
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  await messaging.requestPermission();
+
+  // 4. 상태바 및 네비게이션 바 스타일 설정
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -83,6 +84,7 @@ void main() async {
     ),
   );
 
+  // 5. 로컬 알림(FlutterLocalNotificationsPlugin) 초기화
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
   final DarwinInitializationSettings initializationSettingsIOS =
@@ -93,12 +95,51 @@ void main() async {
   );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
+  // 6. 알림 권한 요청 및 포그라운드 알림 설정
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  await messaging.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
+  try {
+    if (Platform.isIOS) {
+      String? apnsToken = await messaging.getAPNSToken();
+      if (apnsToken == null) {
+        await Future.delayed(const Duration(seconds: 2)); // 2초 대기
+        apnsToken = await messaging.getAPNSToken();
+      }
+    }
+    String? fcmToken = await messaging.getToken();
+  } catch (e) {
+  }
+
   runApp(const MyApp());
 }
+
+
 
 void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   SharedPreferences prefs = await SharedPreferences.getInstance();
+
+  if (Platform.isIOS) {
+    String? apnsToken = await messaging.getAPNSToken();
+    if (apnsToken == null) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      apnsToken = await messaging.getAPNSToken();
+      if (apnsToken == null) {
+        print('iOS APNs 토큰 발급 실패 - 알림 구독이 안 될 수 있습니다.');
+      }
+    }
+  }
 
   final regionTopic = 'region_$regionNo';
   final clubTopic = 'club_$clubNo';
@@ -148,15 +189,6 @@ void unsubscribeAllTopics() async {
   await prefs.remove('prevRegionNo');
   await prefs.remove('prevMemberNo');
   await prefs.remove('access_token');
-}
-
-class MyHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => false;
-  }
 }
 
 class LaunchGate extends StatefulWidget {
@@ -237,6 +269,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '국제라이온스협회 355-A지구',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: primaryNavy,
         scaffoldBackgroundColor: bgColor,
@@ -487,8 +520,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-      if (notification != null && android != null) {
+
+      // android 객체 확인은 Android 전용 채널 설정을 위해서만 사용하거나,
+      // 알림 표출 조건에서는 제외해야 합니다.
+      if (notification != null) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -502,10 +537,17 @@ class _HomeScreenState extends State<HomeScreen> {
               priority: Priority.high,
               icon: '@mipmap/ic_launcher',
             ),
+            // iOS용 알림 설정 추가
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
         );
       }
     });
+
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
