@@ -607,7 +607,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final String? mregionNo = args?['regionNo'];
     final String? mfuncNo = args?['funcNo'];
     final String? clubName = args?['clubName'] ?? args?['clubname'];
-    final imageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
+
+    // 🌟 1. 이미지 URL 분기 처리 로직 추가
+    String primaryImageUrl = '';
+    String? secondaryImageUrl;
+
+    if (mfuncNo == '1' && mclubNo != null && mclubNo.isNotEmpty) {
+      // 클럽 모드일 경우: clubImage{클럽번호}.jpg 시도 후 png 시도
+      primaryImageUrl = '${ApiConf.baseUrl}/thumbnails/clubImage$mclubNo.jpg';
+      secondaryImageUrl = '${ApiConf.baseUrl}/thumbnails/clubImage$mclubNo.png';
+    } else if (mregionNo != null && mregionNo.isNotEmpty) {
+      // 지역 모드 (또는 기본): homeImage{지역번호}.jpg
+      primaryImageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
+    }
 
     String appBarTitle = '주소록';
     if (mfuncNo == '1') {
@@ -621,8 +633,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: bgColor, // 🎨 배경색 변경
+      backgroundColor: bgColor,
       appBar: AppBar(
+        // ... 기존 AppBar 코드 동일 ...
         title: Text(
           appBarTitle,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -646,7 +659,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     arguments: {
                       'clubNo': mclubNo,
                       'memberNo': memberNo,
-                      'mfuncNo': mfuncNo, // 💡 설정 화면으로 권한 번호 전달
+                      'mfuncNo': mfuncNo,
                     },
                   );
                 } else {
@@ -704,13 +717,29 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: (mregionNo != null && mregionNo.isNotEmpty)
+                    // 🌟 2. 이미지 로드 및 Fallback (jpg -> png -> 기본로고) 처리
+                    child: primaryImageUrl.isNotEmpty
                         ? Image.network(
-                      imageUrl,
+                      primaryImageUrl,
                       width: double.infinity,
                       height: 250,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
+                        // 1차 시도(.jpg) 실패 시
+                        if (secondaryImageUrl != null) {
+                          // 2차 시도(.png)
+                          return Image.network(
+                            secondaryImageUrl,
+                            width: double.infinity,
+                            height: 250,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              // 2차 시도(.png)도 실패 시 기본 이미지
+                              return _buildFallbackImage();
+                            },
+                          );
+                        }
+                        // 보조 URL이 없으면 바로 기본 이미지
                         return _buildFallbackImage();
                       },
                     )
@@ -753,6 +782,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   Widget _buildFallbackImage() {
     return Container(
