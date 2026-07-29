@@ -677,7 +677,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        // ... 기존 AppBar 코드 동일 ...
         title: Text(
           appBarTitle,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -781,7 +780,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                           );
                         }
-                        // 보조 URL이 없으면 바로 기본 이미지
                         return _buildFallbackImage();
                       },
                     )
