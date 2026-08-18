@@ -13,6 +13,8 @@ import 'circlelist.dart';
 import 'notice.dart';
 import 'clubmemberlist.dart';
 import 'noticeviewer.dart';
+import 'circle_event_manage.dart';
+import 'club_event_manage.dart'; // 👈 1. 클럽 행사 화면 임포트 추가
 import 'config/api_config.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -59,22 +61,15 @@ Future<List<dynamic>> fetchCircleList(String memberNo) async {
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
-// 🎨 앱 전체에서 사용할 주요 색상 정의 (라이온스클럽 테마: 네이비 & 골드)
 const Color primaryNavy = Color(0xFF003366);
 const Color primaryGold = Color(0xFFFFC107);
 const Color bgColor = Color(0xFFF8F9FA);
 
 void main() async {
-  // 1. Flutter 프레임워크 초기화 (반드시 가장 먼저 호출)
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 2. Firebase 초기화
   await Firebase.initializeApp();
-
-  // 3. 백그라운드 메시지 핸들러 등록 (최상단에 선언된 함수 연결)
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // 4. 상태바 및 네비게이션 바 스타일 설정
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -84,7 +79,6 @@ void main() async {
     ),
   );
 
-  // 5. 로컬 알림(FlutterLocalNotificationsPlugin) 초기화
   const AndroidInitializationSettings initializationSettingsAndroid =
   AndroidInitializationSettings('@mipmap/ic_launcher');
   final DarwinInitializationSettings initializationSettingsIOS =
@@ -95,7 +89,6 @@ void main() async {
   );
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
 
-  // 6. 알림 권한 요청 및 포그라운드 알림 설정
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
     alert: true,
@@ -113,18 +106,15 @@ void main() async {
     if (Platform.isIOS) {
       String? apnsToken = await messaging.getAPNSToken();
       if (apnsToken == null) {
-        await Future.delayed(const Duration(seconds: 2)); // 2초 대기
+        await Future.delayed(const Duration(seconds: 2));
         apnsToken = await messaging.getAPNSToken();
       }
     }
     String? fcmToken = await messaging.getToken();
-  } catch (e) {
-  }
+  } catch (e) {}
 
   runApp(const MyApp());
 }
-
-
 
 void subscribeToTopics(String regionNo, String clubNo, String memberNo) async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
@@ -248,13 +238,10 @@ class _LaunchGateState extends State<LaunchGate> {
     Navigator.pushReplacementNamed(context, '/login');
   }
 
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: primaryNavy, // 🎨 로딩 화면 색상 변경
+      backgroundColor: primaryNavy,
       body: Center(
         child: CircularProgressIndicator(color: primaryGold),
       ),
@@ -297,6 +284,24 @@ class MyApp extends StatelessWidget {
         '/setting': (context) => const SettingScreen(),
         '/notice': (context) => const NoticeScreen(),
         '/cmList': (context) => const ClubMemberListScreen(),
+        // 써클 행사 관리 라우트
+        '/circleEventManage': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return CircleEventManageScreen(
+            circleNo: args['circleNo'],
+            circleName: args['circleName'],
+            memberNo: args['memberNo'],
+          );
+        },
+        // 💡 2. 라우트에 클럽 행사 전용 화면 등록
+        '/clubEventManage': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return ClubEventManageScreen(
+            clubNo: args['clubNo'],
+            clubName: args['clubName'],
+            memberNo: args['memberNo'],
+          );
+        },
       },
     );
   }
@@ -323,7 +328,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      // 무조건 서버로 로그인 요청
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/xlogin/$phoneno'),
       );
@@ -336,7 +340,6 @@ class _LoginScreenState extends State<LoginScreen> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('access_token', data['access_token']);
 
-          // 자동 로그인 정보 저장
           await prefs.setBool('autoLoginEnabled', true);
           await prefs.setString('autoLoginPhone', phoneno);
           final clubNo = data['clubno'].toString();
@@ -380,13 +383,11 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: Colors.white, // 🎨 배경색 변경
+      backgroundColor: Colors.white,
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
@@ -397,7 +398,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 🎨 로고 영역
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -436,8 +436,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-
-                  // 🎨 텍스트 필드 디자인
                   TextField(
                     controller: _usernameController,
                     decoration: InputDecoration(
@@ -471,8 +469,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: const TextStyle(color: Colors.redAccent, fontSize: 14),
                     ),
                   const SizedBox(height: 24),
-
-                  // 🎨 로그인 버튼 디자인
                   SizedBox(
                     width: double.infinity,
                     height: 56,
@@ -521,8 +517,6 @@ class _HomeScreenState extends State<HomeScreen> {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       RemoteNotification? notification = message.notification;
 
-      // android 객체 확인은 Android 전용 채널 설정을 위해서만 사용하거나,
-      // 알림 표출 조건에서는 제외해야 합니다.
       if (notification != null) {
         flutterLocalNotificationsPlugin.show(
           notification.hashCode,
@@ -537,7 +531,6 @@ class _HomeScreenState extends State<HomeScreen> {
               priority: Priority.high,
               icon: '@mipmap/ic_launcher',
             ),
-            // iOS용 알림 설정 추가
             iOS: DarwinNotificationDetails(
               presentAlert: true,
               presentBadge: true,
@@ -547,7 +540,6 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     });
-
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -569,7 +561,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
-
   }
 
   Future<void> _checkForUpdate() async {
@@ -583,7 +574,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // 🎨 대시보드 스타일의 메뉴 버튼 빌더
   Widget _buildMenuCard({
     required String title,
     required IconData icon,
@@ -594,7 +584,7 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          height: 140, // 👈 1. 모든 버튼이 동일한 크기를 가지도록 고정 높이 추가
+          height: 140,
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -610,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center, // 👈 2. 내부 콘텐츠를 수직 중앙 정렬
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
@@ -628,7 +618,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
-                  height: 1.2, // 텍스트 줄간격 조정
+                  height: 1.2,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -650,16 +640,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final String? mfuncNo = args?['funcNo'];
     final String? clubName = args?['clubName'] ?? args?['clubname'];
 
-    // 🌟 1. 이미지 URL 분기 처리 로직 추가
     String primaryImageUrl = '';
     String? secondaryImageUrl;
 
     if (mfuncNo == '1' && mclubNo != null && mclubNo.isNotEmpty) {
-      // 클럽 모드일 경우: clubImage{클럽번호}.jpg 시도 후 png 시도
       primaryImageUrl = '${ApiConf.baseUrl}/thumbnails/clubImage$mclubNo.jpg';
       secondaryImageUrl = '${ApiConf.baseUrl}/thumbnails/clubImage$mclubNo.png';
     } else if (mregionNo != null && mregionNo.isNotEmpty) {
-      // 지역 모드 (또는 기본): homeImage{지역번호}.jpg
       primaryImageUrl = '${ApiConf.baseUrl}/thumbnails/homeImage$mregionNo.jpg';
     }
 
@@ -740,7 +727,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🎨 상단 메인 이미지 배너
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Container(
@@ -758,7 +744,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    // 🌟 2. 이미지 로드 및 Fallback (jpg -> png -> 기본로고) 처리
                     child: primaryImageUrl.isNotEmpty
                         ? Image.network(
                       primaryImageUrl,
@@ -766,16 +751,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 250,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
-                        // 1차 시도(.jpg) 실패 시
                         if (secondaryImageUrl != null) {
-                          // 2차 시도(.png)
                           return Image.network(
                             secondaryImageUrl,
                             width: double.infinity,
                             height: 250,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
-                              // 2차 시도(.png)도 실패 시 기본 이미지
                               return _buildFallbackImage();
                             },
                           );
@@ -800,7 +782,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // 🎨 대시보드 형태의 버튼 리스트
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -822,7 +803,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
 
   Widget _buildFallbackImage() {
     return Container(
@@ -849,9 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
       String? clubName,
       ) {
     List<Widget> widgets = [];
-    // ==========================================
-    // 🌟 게스트 모드 (mfuncNo == '4')
-    // ==========================================
+
     if (mfuncNo == '4') {
       widgets.addAll([
         Row(
@@ -875,7 +853,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ]);
     }
-    // 🌟 1. 써클 모드 (mfuncNo == '2')
     else if (mfuncNo == '2') {
       widgets.addAll([
         Row(
@@ -892,12 +869,10 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         Row(
           children: [
-            // 💡 써클 문서함을 제외하고 공지사항만 남겨두면 Expanded 속성에 의해 가로 전체를 차지하게 됩니다.
             _buildMenuCard(
               title: '써클 공지사항',
               icon: Icons.campaign,
               onTap: () {
-                // 💡 기존에 만들어둔 공지사항 화면으로 연결 (써클 공지 탭만 뜨도록 처리됨)
                 Navigator.pushNamed(context, '/notice', arguments: {
                   'mregionNo': mregionNo,
                   'mclubNo': mclubNo,
@@ -912,7 +887,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ]);
     }
-    // 🌟 2. 기존 클럽 모드
+    // 🌟 2. 클럽 모드 (mfuncNo == '1')
     else if (mfuncNo == '1') {
       widgets.addAll([
         Row(
@@ -976,20 +951,43 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        if (_circleList.isNotEmpty)
-          Row(
-            children: [
+        // 📄 [클럽 모드 추가] 클럽 문서 목록 다음에 "클럽 행사" 추가
+        Row(
+          children: [
+            _buildMenuCard(
+              title: '클럽 행사',
+              icon: Icons.event,
+              onTap: () {
+                if (mclubNo != null) {
+                  // 💡 [수정 완료] 써클 관리 화면이 아닌 신규 제작한 클럽 행사 전용 화면('/clubEventManage')으로 이동합니다.
+                  Navigator.pushNamed(
+                    context,
+                    '/clubEventManage',
+                    arguments: {
+                      'clubNo': int.tryParse(mclubNo) ?? 0,
+                      'clubName': clubName ?? '클럽',
+                      'memberNo': memberNo ?? '',
+                    },
+                  );
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+            const SizedBox(width: 12),
+            // 만약 가입한 써클 목록이 존재한다면 써클 목록을 옆에 나란히 배치하고, 없다면 빈 공간으로 둡니다.
+            if (_circleList.isNotEmpty)
               _buildMenuCard(
                 title: '써클 목록',
                 icon: Icons.stars,
                 onTap: () {
                   Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
                 },
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: Container()), // 빈 공간 채우기
-            ],
-          ),
+              )
+            else
+              Expanded(child: Container()),
+          ],
+        ),
       ]);
     }
     // 🌟 3. 기존 지역/지구 모드
@@ -1063,6 +1061,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 12),
+        // 📄 [지역 모드 추가] 클럽 문서 목록 다음에 "클럽 행사" 추가
         Row(
           children: [
             _buildMenuCard(
@@ -1084,23 +1083,47 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const SizedBox(width: 12),
-            if (_circleList.isNotEmpty)
+            _buildMenuCard(
+              title: '클럽 행사',
+              icon: Icons.event,
+              onTap: () {
+                if (mclubNo != null) {
+                  // 💡 [수정 완료] 써클 관리 화면이 아닌 신규 제작한 클럽 행사 전용 화면('/clubEventManage')으로 이동합니다.
+                  Navigator.pushNamed(
+                    context,
+                    '/clubEventManage',
+                    arguments: {
+                      'clubNo': int.tryParse(mclubNo) ?? 0,
+                      'clubName': clubName ?? '클럽',
+                      'memberNo': memberNo ?? '',
+                    },
+                  );
+                } else {
+                  _showSessionExpired(context);
+                }
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_circleList.isNotEmpty)
+          Row(
+            children: [
               _buildMenuCard(
                 title: '써클 목록',
                 icon: Icons.stars,
                 onTap: () {
                   Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
                 },
-              )
-            else
-              Expanded(child: Container()), // 빈 공간 채우기
-          ],
-        ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Container()),
+            ],
+          ),
       ]);
     }
     return widgets;
   }
-
 
   void _showSessionExpired(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
