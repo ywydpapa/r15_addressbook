@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -27,30 +28,85 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
   List<dynamic> _events = [];
   bool _isLoading = true;
 
+  // 5초 타이머를 저장할 변수
+  Timer? _longPressTimer;
+
   @override
   void initState() {
     super.initState();
-    _fetchEvents();
+    _fetchEvents(showFullLoading: true); // 처음 진입할 때만 전체 화면 로딩 표시
   }
 
-  // 💡 화면으로 다시 돌아왔을 때(Navigator.pop) 목록을 최신화하기 위한 헬퍼 함수
+  @override
+  void dispose() {
+    _longPressTimer?.cancel();
+    super.dispose();
+  }
+
+  // 💡 [성능 최적화] 상세 화면에서 '실제 변경사항(true)'을 가지고 돌아왔을 때만 새로고침을 수행합니다.
   Future<void> _navigateAndRefresh(BuildContext context, Widget targetScreen) async {
-    await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => targetScreen),
     );
-    _fetchEvents(); // 돌아왔을 때 즉시 목록 다시 조회하여 배지 상태 갱신
+
+    // 참석 정보 변경 등 데이터 수정이 발생하여 true를 반환받았을 때만 백그라운드 새로고침 실행
+    if (result == true && mounted) {
+      _fetchEvents(showFullLoading: false); // 화면 깜빡임 없이 조용히 데이터만 갱신
+    }
   }
 
-  Future<void> _fetchEvents() async {
+  // 💡 [성능 최적화] showFullLoading 매개변수를 추가하여 불필요한 전체화면 로딩창을 방지합니다.
+  Future<void> _fetchEvents({bool showFullLoading = false}) async {
+    if (showFullLoading) {
+      setState(() => _isLoading = true);
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('access_token') ?? '';
+
+      final response = await http.get(
+        Uri.parse('${ApiConf.baseUrl}/phapp/getclubevents/${widget.clubNo}?memberNo=${widget.memberNo}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 5)); // 💡 네트워크 지연 시 무한 대기를 방지하기 위한 타임아웃(5초) 설정
+
+      if (response.statusCode == 200) {
+        final decoded = utf8.decode(response.bodyBytes);
+        final data = jsonDecode(decoded);
+
+        if (mounted) {
+          setState(() {
+            if (data is Map && data.containsKey('events')) {
+              _events = data['events'] ?? [];
+            } else if (data is List) {
+              _events = data;
+            } else {
+              _events = [];
+            }
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print('클럽 행사 목록 조회 실패: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // 백엔드에 클럽 행사 삭제(소프트 딜리트)를 요청하는 함수
+  Future<void> _deleteEvent(int eventNo) async {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token') ?? '';
 
-      // 💡 memberNo를 쿼리 파라미터로 함께 전송하여 내 응답 여부를 파악합니다.
-      final response = await http.get(
-        Uri.parse('${ApiConf.baseUrl}/phapp/getclubevents/${widget.clubNo}?memberNo=${widget.memberNo}'),
+      final response = await http.post(
+        Uri.parse('${ApiConf.baseUrl}/phapp/club/event/delete/$eventNo'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -58,26 +114,66 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
       );
 
       if (response.statusCode == 200) {
-        final decoded = utf8.decode(response.bodyBytes);
-        final data = jsonDecode(decoded);
-
-        setState(() {
-          if (data is Map && data.containsKey('events')) {
-            _events = data['events'] ?? [];
-          } else if (data is List) {
-            _events = data;
-          } else {
-            _events = [];
-          }
-          _isLoading = false;
-        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('행사가 성공적으로 삭제되었습니다.')),
+        );
+        _fetchEvents(showFullLoading: true); // 삭제 성공 후에는 전체 새로고침
       } else {
+        final decoded = utf8.decode(response.bodyBytes);
+        final errData = jsonDecode(decoded);
+        String errMsg = errData['detail'] ?? '삭제에 실패했습니다.';
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errMsg)),
+        );
         setState(() => _isLoading = false);
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      print('클럽 행사 목록 조회 실패: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('오류가 발생했습니다: $e')),
+      );
     }
+  }
+
+  // 길게 눌렀을 때 띄워줄 삭제 확인 팝업창
+  void _showDeleteConfirmDialog(int eventNo, String eventTitle) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.red),
+              SizedBox(width: 8),
+              Text('행사 삭제', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            '[$eventTitle]\n이 행사를 정말로 삭제하시겠습니까?\n삭제된 행사는 목록에서 제외됩니다.',
+            style: const TextStyle(height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context), // 취소
+              child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // 팝업 닫기
+                _deleteEvent(eventNo);  // 삭제 실행
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildEventTypeBadge(String? eventType) {
@@ -135,7 +231,7 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
       builder: (context) => AddClubEventBottomSheet(
         clubNo: widget.clubNo,
         onSuccess: () {
-          _fetchEvents();
+          _fetchEvents(showFullLoading: true);
         },
       ),
     );
@@ -171,7 +267,7 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
           final String eventPlace = event['eventPlace'] ?? '';
           final String eventMemo = event['eventMemo'] ?? '';
           final String? eventType = event['eventType'];
-          final bool isAnswered = event['isAnswered'] ?? false; // 💡 응답 여부 변수
+          final bool isAnswered = event['isAnswered'] ?? false;
 
           String timeDisplay = eventTimeFrom;
           if (timeDisplay.length >= 5) {
@@ -186,7 +282,6 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
             dateDisplay += ' ($timeDisplay)';
           }
 
-          // 💡 미응답 여부에 따른 카드 테두리 및 배경 디자인 강화
           final Color cardBgColor = !isAnswered ? const Color(0xFFFFF5F5) : Colors.white;
           final BorderSide cardBorder = !isAnswered
               ? const BorderSide(color: Colors.redAccent, width: 1.5)
@@ -194,24 +289,39 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
 
           return Card(
             margin: const EdgeInsets.only(bottom: 16),
-            elevation: !isAnswered ? 3 : 1, // 미응답 신규 카드는 입체감을 더 줌
+            elevation: !isAnswered ? 3 : 1,
             color: cardBgColor,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
               side: cardBorder,
             ),
-            child: InkWell(
-              onTap: () {
-                _navigateAndRefresh(
-                  context,
-                  ClubEventAttendeeScreen(
-                    eventNo: eventNo,
-                    eventTitle: eventTitle,
-                    memberNo: widget.memberNo,
-                  ),
-                );
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTapDown: (_) {
+                // 1. 터치가 시작되면 타이머 작동 (5초 후 다이얼로그 호출)
+                _longPressTimer = Timer(const Duration(seconds: 5), () {
+                  Feedback.forLongPress(context);
+                  _showDeleteConfirmDialog(eventNo, eventTitle);
+                });
               },
-              borderRadius: BorderRadius.circular(12),
+              onTapUp: (_) {
+                // 2. 5초가 되기 전에 손을 떼면 타이머 취소 및 일반 클릭(상세화면 이동) 처리
+                if (_longPressTimer != null && _longPressTimer!.isActive) {
+                  _longPressTimer!.cancel();
+                  _navigateAndRefresh(
+                    context,
+                    ClubEventAttendeeScreen(
+                      eventNo: eventNo,
+                      eventTitle: eventTitle,
+                      memberNo: widget.memberNo,
+                    ),
+                  );
+                }
+              },
+              onTapCancel: () {
+                // 3. 드래그 등으로 터치가 취소되면 타이머 취소
+                _longPressTimer?.cancel();
+              },
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -237,7 +347,6 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
                                 children: [
                                   _buildEventTypeBadge(eventType),
                                   const SizedBox(width: 8),
-                                  // 💡 확실하게 눈에 띄는 "미응답 신규" 배지 디자인
                                   if (!isAnswered)
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
