@@ -223,6 +223,125 @@ class _CircleEventManageScreenState extends State<CircleEventManageScreen> {
     );
   }
 
+  // 💡 [추가됨] 써클 행사 생성 비밀번호 확인 팝업 및 API 검증 로직
+  void _showPasswordDialog() {
+    final TextEditingController passwordController = TextEditingController();
+    bool isChecking = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 검증 중 바깥 터치로 닫히지 않도록
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('권한 확인', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('행사를 생성하려면 관리자 비밀번호를 입력하세요.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true, // 비밀번호 숨김 처리
+                    decoration: InputDecoration(
+                      labelText: '비밀번호',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isChecking ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('취소', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isChecking
+                      ? null
+                      : () async {
+                    final pw = passwordController.text.trim();
+                    if (pw.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('비밀번호를 입력해주세요.')),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() => isChecking = true);
+
+                    try {
+                      final prefs = await SharedPreferences.getInstance();
+                      final token = prefs.getString('access_token') ?? '';
+
+                      // 💡 써클용 API 엔드포인트 적용 (/chkrightcircleevent/{circleno}/{sec_key})
+                      final response = await http.get(
+                        Uri.parse('${ApiConf.baseUrl}/phapp/chkrightcircleevent/${widget.circleNo}/$pw'),
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer $token',
+                        },
+                      );
+
+                      if (response.statusCode == 200) {
+                        final decoded = utf8.decode(response.bodyBytes);
+                        final data = jsonDecode(decoded);
+
+                        // chkkey가 1 이상이면 일치
+                        if (data['chkkey'] != null && data['chkkey'] > 0) {
+                          if (context.mounted) {
+                            Navigator.pop(dialogContext); // 비밀번호 팝업 닫기
+                            _showAddEventDialog(); // 행사 추가 BottomSheet 열기
+                          }
+                        } else {
+                          // 비밀번호 불일치
+                          if (context.mounted) {
+                            setDialogState(() => isChecking = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
+                            );
+                          }
+                        }
+                      } else {
+                        // 서버 에러 등
+                        if (context.mounted) {
+                          setDialogState(() => isChecking = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('서버 오류가 발생했습니다. (코드: ${response.statusCode})')),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        setDialogState(() => isChecking = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('네트워크 오류가 발생했습니다: $e')),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF003366),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isChecking
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showAddEventDialog() {
     showModalBottomSheet(
       context: context,
@@ -449,7 +568,8 @@ class _CircleEventManageScreenState extends State<CircleEventManageScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddEventDialog,
+        // 💡 [변경됨] 바로 _showAddEventDialog를 호출하지 않고, 비밀번호 확인 팝업을 먼저 호출합니다.
+        onPressed: _showPasswordDialog,
         backgroundColor: primaryNavy,
         foregroundColor: primaryGold,
         child: const Icon(Icons.add, size: 30),

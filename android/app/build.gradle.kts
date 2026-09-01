@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    // id("kotlin-android")
+    id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "kr.swcore.r15_addressbook"
-        minSdk = flutter.minSdkVersion          // ← 21에서 23으로 변경!
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

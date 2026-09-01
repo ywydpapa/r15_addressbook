@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'config/api_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 // =========================================================
 // 1. 클럽별 행사 목록 화면
 // =========================================================
@@ -71,7 +72,7 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      ).timeout(const Duration(seconds: 5)); // 💡 네트워크 지연 시 무한 대기를 방지하기 위한 타임아웃(5초) 설정
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final decoded = utf8.decode(response.bodyBytes);
@@ -223,6 +224,128 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
     );
   }
 
+  // 💡 [추가됨] 비밀번호 확인 팝업 및 API 검증 로직
+  // 💡 비밀번호 확인 팝업 및 API 검증 로직 (FastAPI 연동 수정본)
+  void _showPasswordDialog() {
+    final TextEditingController passwordController = TextEditingController();
+    bool isChecking = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 검증 중 바깥 터치로 닫히지 않도록
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('권한 확인', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('행사를 생성하려면 관리자 비밀번호를 입력하세요.'),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: true, // 비밀번호 숨김 처리
+                    decoration: InputDecoration(
+                      labelText: '비밀번호',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isChecking ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('취소', style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: isChecking
+                      ? null
+                      : () async {
+                    final pw = passwordController.text.trim();
+                    if (pw.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('비밀번호를 입력해주세요.')),
+                      );
+                      return;
+                    }
+
+                    setDialogState(() => isChecking = true);
+
+                    try {
+                      final prefs = await SharedPreferences.getInstance();
+                      final token = prefs.getString('access_token') ?? '';
+
+                      // 💡 1. URL 수정: /{clubno}/{sec_key} 형태의 Path Parameter 적용
+                      final response = await http.get(
+                        Uri.parse('${ApiConf.baseUrl}/phapp/chkrightcevent/${widget.clubNo}/$pw'),
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': 'Bearer $token',
+                        },
+                      );
+
+                      if (response.statusCode == 200) {
+                        // 💡 2. 응답 JSON 파싱하여 chkkey 값 확인
+                        final decoded = utf8.decode(response.bodyBytes);
+                        final data = jsonDecode(decoded);
+
+                        // chkkey가 1 이상이면 일치 (count(*) 결과)
+                        if (data['chkkey'] != null && data['chkkey'] > 0) {
+                          if (context.mounted) {
+                            Navigator.pop(dialogContext); // 비밀번호 팝업 닫기
+                            _showAddEventDialog(); // 행사 추가 BottomSheet 열기
+                          }
+                        } else {
+                          // 비밀번호 불일치 (chkkey == 0)
+                          if (context.mounted) {
+                            setDialogState(() => isChecking = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('비밀번호가 일치하지 않습니다.')),
+                            );
+                          }
+                        }
+                      } else {
+                        // 서버 에러 등 (401, 404, 500 등)
+                        if (context.mounted) {
+                          setDialogState(() => isChecking = false);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('서버 오류가 발생했습니다. (코드: ${response.statusCode})')),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        setDialogState(() => isChecking = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('네트워크 오류가 발생했습니다: $e')),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF003366),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isChecking
+                      ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : const Text('확인'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 실제 행사 추가 BottomSheet 호출
   void _showAddEventDialog() {
     showModalBottomSheet(
       context: context,
@@ -298,14 +421,12 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTapDown: (_) {
-                // 1. 터치가 시작되면 타이머 작동 (5초 후 다이얼로그 호출)
                 _longPressTimer = Timer(const Duration(seconds: 5), () {
                   Feedback.forLongPress(context);
                   _showDeleteConfirmDialog(eventNo, eventTitle);
                 });
               },
               onTapUp: (_) {
-                // 2. 5초가 되기 전에 손을 떼면 타이머 취소 및 일반 클릭(상세화면 이동) 처리
                 if (_longPressTimer != null && _longPressTimer!.isActive) {
                   _longPressTimer!.cancel();
                   _navigateAndRefresh(
@@ -319,7 +440,6 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
                 }
               },
               onTapCancel: () {
-                // 3. 드래그 등으로 터치가 취소되면 타이머 취소
                 _longPressTimer?.cancel();
               },
               child: Padding(
@@ -449,7 +569,8 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showAddEventDialog,
+        // 💡 [변경됨] 바로 _showAddEventDialog를 호출하지 않고, 비밀번호 확인 팝업을 먼저 호출합니다.
+        onPressed: _showPasswordDialog,
         backgroundColor: primaryNavy,
         foregroundColor: primaryGold,
         child: const Icon(Icons.add, size: 30),

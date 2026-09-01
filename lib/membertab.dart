@@ -36,6 +36,8 @@ class Memberdtl {
   final String? offSns;
   final String? bisMemo;
   final String? clubRank;
+  final String? memberjoinDate;
+  final String? sponser;
 
   Memberdtl({
     required this.memberNo,
@@ -68,6 +70,8 @@ class Memberdtl {
     this.offSns,
     this.bisMemo,
     this.clubRank,
+    this.memberjoinDate,
+    this.sponser
   });
 
   factory Memberdtl.fromJson(Map<String, dynamic> json) {
@@ -108,6 +112,8 @@ class Memberdtl {
       offSns: json['offSns']?.toString(),
       bisMemo: json['bisMemo']?.toString(),
       clubRank: json['clubRank']?.toString(),
+      memberjoinDate: json['memberJoindate']?.toString(),
+      sponser: json['sponserNo']?.toString()
     );
   }
 }
@@ -348,6 +354,59 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   Widget _buildMemberInfoPage(Memberdtl member) {
+    // 값이 유효한지(null 아님, 빈칸 아님, "비공개" 아님) 확인하는 내부 헬퍼 함수
+    bool isVisible(String? value) {
+      if (value == null) return false;
+      final trimmed = value.trim();
+      return trimmed.isNotEmpty && trimmed != '비공개';
+    }
+
+    // 1. 직책 관련 로직 정리
+    final isDifferentClub = member.clubNo?.toString() != widget.mclubNo?.toString();
+    final rankLabel = isDifferentClub ? '직책' : '클럽직책';
+    final rankValue = isDifferentClub ? member.rankTitle : member.clubRank;
+
+    // 2. 데이터가 존재하고 "비공개"가 아닌 항목만 리스트에 담기
+    final List<Widget> infoRows = [
+      // 회원성명은 필수값이므로 항상 표시 (필요시 isVisible 적용 가능)
+      _buildInfoRow(Icons.person, '회원성명', member.memberName),
+
+      if (isVisible(member.clubName))
+        _buildInfoRow(Icons.groups, '소속클럽', member.clubName!),
+
+      if (isVisible(rankValue))
+        _buildInfoRow(Icons.badge, rankLabel, rankValue!),
+
+      if (isVisible(member.memberPhone))
+        _buildInfoRow(Icons.phone_iphone, '연락처', member.memberPhone!, isPhone: true),
+
+      if (isVisible(member.memberAddress))
+        _buildInfoRow(Icons.location_on, '주소', member.memberAddress!),
+
+      if (isVisible(member.memberBirth))
+        _buildInfoRow(Icons.cake, '생년월일', member.memberBirth!),
+
+      if (isVisible(member.memberjoinDate))
+        _buildInfoRow(Icons.calendar_month, '입회일', member.memberjoinDate!),
+
+      if (isVisible(member.sponser))
+        _buildInfoRow(Icons.person_2, '스폰서', member.sponser!),
+
+      if (isVisible(member.addMemo))
+        _buildInfoRow(Icons.note_alt, '추가기재', member.addMemo!),
+    ];
+
+    // 3. 항목들 사이에만 Divider를 끼워 넣은 최종 리스트 생성
+    final List<Widget> columnChildren = infoRows.isEmpty
+        ? []
+        : infoRows
+        .expand((widget) => [
+      widget,
+      Divider(height: 1, color: Colors.grey.shade200),
+    ])
+        .toList()
+      ..removeLast(); // 맨 마지막에 추가된 불필요한 Divider 제거
+
     return SingleChildScrollView(
       physics: BouncingScrollPhysics(),
       child: Padding(
@@ -365,23 +424,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                 side: BorderSide(color: Colors.grey.shade200),
               ),
               child: Column(
-                children: [
-                  _buildInfoRow(Icons.person, '회원성명', member.memberName),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.groups, '소속클럽', member.clubName ?? '정보 없음'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  (member.clubNo?.toString() != (widget.mclubNo?.toString()))
-                      ? _buildInfoRow(Icons.badge, '직책', member.rankTitle)
-                      : _buildInfoRow(Icons.badge, '클럽직책', member.clubRank ?? '정보 없음'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.phone_iphone, '연락처', member.memberPhone, isPhone: true),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.location_on, '주소', member.memberAddress ?? '주소 없음'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.cake, '생년월일', member.memberBirth ?? '정보 없음'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.note_alt, '추가기재', member.addMemo ?? '없음'),
-                ],
+                children: columnChildren,
               ),
             ),
             SizedBox(height: 30), // 하단 여백
@@ -390,6 +433,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       ),
     );
   }
+
 
   Widget _buildNameCardPage(Memberdtl member) {
     final String bizTypeText = (member.bisType?.trim().toUpperCase() == 'SELF')
