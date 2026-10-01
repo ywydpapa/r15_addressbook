@@ -1,4 +1,3 @@
-// circlelist.dart 수정본
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -108,6 +107,9 @@ class _CircleListScreenState extends State<CircleListScreen> {
                 itemCount: snapshot.data!.length,
                 itemBuilder: (context, index) {
                   final circle = snapshot.data![index];
+                  // 각 써클의 썸네일 URL 정의
+                  final String logoUrl = '${ApiConf.baseUrl}/thumbnails/${circle.circleNo}circlelogo.png';
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     elevation: 2,
@@ -134,13 +136,26 @@ class _CircleListScreenState extends State<CircleListScreen> {
                             },
                             child: Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: primaryNavy.withOpacity(0.1),
-                                    shape: BoxShape.circle,
+                                // 로고 아이콘 영역
+                                ClipOval(
+                                  child: Image.network(
+                                    logoUrl,
+                                    width: 40,
+                                    height: 40,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // 이미지를 찾을 수 없거나 불러오기 실패 시 기본 아이콘 표시
+                                      return Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: primaryNavy.withOpacity(0.1),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(Icons.stars, color: primaryNavy),
+                                      );
+                                    },
                                   ),
-                                  child: const Icon(Icons.stars, color: primaryNavy),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
