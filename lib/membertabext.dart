@@ -166,6 +166,30 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
     }
   }
 
+  // 💡 값이 유효한지(null, 빈칸, 비공개, Private, N/A 등이 아님) 확인하는 헬퍼 함수
+  bool _isVisible(String? value) {
+    if (value == null) return false;
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
+    if (lower == '비공개' ||
+        lower == 'private' ||
+        lower == '[비공개]' ||
+        lower == '[private]' ||
+        lower == '(비공개)' ||
+        lower == '(private)' ||
+        lower == 'n/a' ||
+        lower == 'na' ||
+        lower == 'none' ||
+        lower == 'null' ||
+        lower == '정보 없음' ||
+        lower == '정보없음' ||
+        lower == '없음') {
+      return false;
+    }
+    return true;
+  }
+
   Widget _buildInfoRow(IconData icon, String label, String value, {bool isPhone = false}) {
     Widget valueWidget = Text(
       value,
@@ -177,7 +201,7 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
       textAlign: TextAlign.right,
     );
 
-    if (isPhone && value != 'N/A' && value != 'Private') {
+    if (isPhone && _isVisible(value)) {
       valueWidget = InkWell(
         onTap: () async {
           final Uri phoneUri = Uri(scheme: 'tel', path: value.replaceAll('-', ''));
@@ -224,7 +248,7 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
 
   Widget _buildNetworkImage(String? urlPath, double height, double width, {double borderRadius = 16.0}) {
     Widget imageWidget;
-    if (urlPath != null && urlPath.isNotEmpty) {
+    if (urlPath != null && _isVisible(urlPath) && urlPath != '0') {
       final imageUrl = urlPath.startsWith('http') ? urlPath : '${ApiConf.baseUrl}$urlPath';
       imageWidget = Image.network(
         imageUrl,
@@ -250,7 +274,7 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 15,
             offset: Offset(0, 5),
           ),
@@ -331,7 +355,16 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
                   _buildMemberInfoPage(member),
                 ];
 
-                if (member.clubNo != null && mclubNo != null && member.clubNo.toString() == mclubNo.toString()) {
+                final bool hasSpousePhoto = _isVisible(member.spousePhoto) && member.spousePhoto != '0';
+                final bool hasSpouseData = hasSpousePhoto ||
+                    _isVisible(member.spouseName) ||
+                    _isVisible(member.spousePhone) ||
+                    _isVisible(member.spouseBirth);
+
+                if (member.clubNo != null &&
+                    mclubNo != null &&
+                    member.clubNo.toString() == mclubNo.toString() &&
+                    hasSpouseData) {
                   pages.add(_buildSpouseInfoPage(member));
                 }
 
@@ -348,39 +381,75 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
   }
 
   Widget _buildMemberInfoPage(MemberdtlExt member) {
+    final displayName = _isVisible(member.memberName)
+        ? member.memberName
+        : (_isVisible(widget.memberName) ? widget.memberName : member.memberName);
+
+    // 1. 직책 관련 로직 정리
+    final isDifferentClub = member.clubNo?.toString() != widget.mclubNo?.toString();
+    final rankLabel = isDifferentClub ? 'Rank' : 'Club Rank';
+    final rankValue = isDifferentClub ? member.rankTitle : (member.clubRank ?? member.rankTitle);
+
+    // 2. 비공개(Private, 비공개, N/A 등) 및 유효하지 않은 항목은 제외하고 표시할 항목만 리스트에 담기
+    final List<Widget> infoRows = [
+      _buildInfoRow(Icons.person, 'Name', displayName),
+
+      if (_isVisible(member.clubName))
+        _buildInfoRow(Icons.groups, 'Club', member.clubName!),
+
+      if (_isVisible(rankValue))
+        _buildInfoRow(Icons.badge, rankLabel, rankValue),
+
+      if (_isVisible(member.memberPhone))
+        _buildInfoRow(Icons.phone_iphone, 'Mobile No', member.memberPhone, isPhone: true),
+
+      if (_isVisible(member.memberAddress))
+        _buildInfoRow(Icons.location_on, 'Address', member.memberAddress!),
+
+      if (_isVisible(member.memberEmail))
+        _buildInfoRow(Icons.email, 'Email', member.memberEmail!),
+
+      if (_isVisible(member.memberBirth))
+        _buildInfoRow(Icons.cake, 'Birth Date', member.memberBirth!),
+
+      if (_isVisible(member.addMemo))
+        _buildInfoRow(Icons.note_alt, 'Memo', member.addMemo!),
+    ];
+
+    // 3. 항목들 사이에만 Divider를 끼워 넣은 최종 리스트 생성
+    final List<Widget> columnChildren = infoRows.isEmpty
+        ? []
+        : infoRows
+            .expand((widget) => [
+                  widget,
+                  Divider(height: 1, color: Colors.grey.shade200),
+                ])
+            .toList()
+          ..removeLast(); // 맨 마지막에 추가된 불필요한 Divider 제거
+
     return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             _buildPageTitle('Member Info'),
             _buildNetworkImage(member.mPhotoBase64, 260, 200, borderRadius: 20),
-            SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade200),
+            if (columnChildren.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: columnChildren,
+                ),
               ),
-              child: Column(
-                children: [
-                  _buildInfoRow(Icons.person, 'Name', member.memberName),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  (member.clubNo?.toString() != (widget.mclubNo?.toString()))
-                      ? _buildInfoRow(Icons.badge, 'Rank', member.rankTitle)
-                      : _buildInfoRow(Icons.badge, 'Club Rank', member.clubRank ?? 'N/A'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.phone_iphone, 'Mobile No', member.memberPhone, isPhone: true),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.cake, 'Birth Date', member.memberBirth ?? 'N/A'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.note_alt, 'Memo', member.addMemo ?? 'None'),
-                ],
-              ),
-            ),
-            SizedBox(height: 30),
+            ],
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -388,33 +457,51 @@ class _MemberDetailExtScreenState extends State<MemberDetailExtScreen> {
   }
 
   Widget _buildSpouseInfoPage(MemberdtlExt member) {
+    // 배우자 정보 중 비공개 및 유효하지 않은 항목 제외
+    final List<Widget> spouseRows = [
+      if (_isVisible(member.spouseName))
+        _buildInfoRow(Icons.favorite, 'Spouse Name', member.spouseName!),
+
+      if (_isVisible(member.spousePhone))
+        _buildInfoRow(Icons.phone_iphone, 'Spouse Phone', member.spousePhone!, isPhone: true),
+
+      if (_isVisible(member.spouseBirth))
+        _buildInfoRow(Icons.cake, 'Spouse Birth Date', member.spouseBirth!),
+    ];
+
+    final List<Widget> columnChildren = spouseRows.isEmpty
+        ? []
+        : spouseRows
+            .expand((widget) => [
+                  widget,
+                  Divider(height: 1, color: Colors.grey.shade200),
+                ])
+            .toList()
+          ..removeLast();
+
     return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
+      physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             _buildPageTitle('Spouse Info'),
             _buildNetworkImage(member.spousePhoto, 260, 200, borderRadius: 20),
-            SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              color: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.grey.shade200),
+            if (columnChildren.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Card(
+                elevation: 0,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: columnChildren,
+                ),
               ),
-              child: Column(
-                children: [
-                  _buildInfoRow(Icons.favorite, 'Spouse Name', member.spouseName ?? 'N/A'),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.phone_iphone, 'Spouse Phone', member.spousePhone ?? 'N/A', isPhone: true),
-                  Divider(height: 1, color: Colors.grey.shade200),
-                  _buildInfoRow(Icons.cake, 'Spouse Birth Date', member.spouseBirth ?? 'N/A'),
-                ],
-              ),
-            ),
-            SizedBox(height: 30),
+            ],
+            const SizedBox(height: 30),
           ],
         ),
       ),
