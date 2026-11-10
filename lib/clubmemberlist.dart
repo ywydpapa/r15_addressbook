@@ -4,7 +4,7 @@ import 'membertabext.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 
 class Member {
   final int memberNo;
@@ -77,8 +77,7 @@ class _ClubMemberListScreenState extends State<ClubMemberListScreen> {
   }
 
   Future<List<Member>> fetchClubMemberList(int clubNo) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     final String endpoint = (funcNo == '4')
         ? '/phapp/memberListext/$clubNo'

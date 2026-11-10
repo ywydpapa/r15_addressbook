@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 
 // =========================================================
 // 1. 써클별 행사 목록 화면
@@ -62,8 +62,7 @@ class _CircleEventManageScreenState extends State<CircleEventManageScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/getcircleevents/${widget.circleNo}?memberNo=${widget.memberNo}'),
@@ -102,8 +101,7 @@ class _CircleEventManageScreenState extends State<CircleEventManageScreen> {
   Future<void> _deleteEvent(int eventNo) async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse('${ApiConf.baseUrl}/phapp/circle/event/delete/$eventNo'),
@@ -273,8 +271,7 @@ class _CircleEventManageScreenState extends State<CircleEventManageScreen> {
                     setDialogState(() => isChecking = true);
 
                     try {
-                      final prefs = await SharedPreferences.getInstance();
-                      final token = prefs.getString('access_token') ?? '';
+                      final token = await SecureStorage.getAccessToken();
 
                       // 💡 써클용 API 엔드포인트 적용 (/chkrightcircleevent/{circleno}/{sec_key})
                       final response = await http.get(
@@ -661,8 +658,7 @@ class _AddCircleEventBottomSheetState extends State<AddCircleEventBottomSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final bodyData = {
         'circleNo': widget.circleNo,
@@ -900,8 +896,7 @@ class _CircleEventAttendeeScreenState extends State<CircleEventAttendeeScreen> {
   // 본인 참석 정보 조회
   Future<void> _fetchMyAttendance() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse(
@@ -933,8 +928,7 @@ class _CircleEventAttendeeScreenState extends State<CircleEventAttendeeScreen> {
   // 전체 참석자 명단 조회
   Future<void> _fetchAttendees() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/circle/event/members/${widget.eventNo}'),
@@ -966,8 +960,7 @@ class _CircleEventAttendeeScreenState extends State<CircleEventAttendeeScreen> {
   }) async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse('${ApiConf.baseUrl}/phapp/circle/event/attend'),

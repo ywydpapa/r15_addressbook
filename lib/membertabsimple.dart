@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class Memberdtl {
   final int? memberNo;
@@ -126,8 +126,7 @@ class _MemberSimpleDetailScreenState extends State<MemberSimpleDetailScreen> {
   }
 
   Future<Memberdtl> fetchMemberDetail(int memberNo) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/memberDtl/$memberNo'),

@@ -3,7 +3,7 @@ import 'membertab.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
+import 'package:r15_addressbook/config/secure_storage.dart';
 
 class Member {
   final int memberNo;
@@ -67,9 +67,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
   }
 
   Future<List<Member>> fetchMemberList(int clubNo) async {
-    // 1. 저장된 토큰 불러오기
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     // 2. 헤더에 토큰을 담아서 GET 요청 보내기
     final response = await http.get(

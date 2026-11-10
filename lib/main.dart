@@ -15,7 +15,9 @@ import 'clubmemberlist.dart';
 import 'noticeviewer.dart';
 import 'circle_event_manage.dart';
 import 'club_event_manage.dart'; // 👈 1. 클럽 행사 화면 임포트 추가
+import 'golf_rounding.dart'; // 👈 2. 골프 라운딩 화면 임포트 추가
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -30,8 +32,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<List<dynamic>> fetchCircleList(String memberNo) async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/getmycircle/$memberNo'),
@@ -111,7 +112,9 @@ void main() async {
       }
     }
     String? fcmToken = await messaging.getToken();
-  } catch (e) {}
+  } catch (e) {
+    print('FCM token error: $e');
+  }
 
   runApp(const MyApp());
 }
@@ -178,7 +181,7 @@ void unsubscribeAllTopics() async {
   await prefs.remove('prevClubNo');
   await prefs.remove('prevRegionNo');
   await prefs.remove('prevMemberNo');
-  await prefs.remove('access_token');
+  await SecureStorage.deleteAccessToken();
 }
 
 class LaunchGate extends StatefulWidget {
@@ -209,7 +212,7 @@ class _LaunchGateState extends State<LaunchGate> {
         if (res.statusCode == 200) {
           final data = jsonDecode(decodedBody);
           if (data is Map && data.containsKey('clubno') && data.containsKey('access_token')) {
-            await prefs.setString('access_token', data['access_token']);
+            await SecureStorage.setAccessToken(data['access_token']);
             final clubNo = data['clubno'].toString();
             final memberNo = data['memberno'].toString();
             final regionNo = data['regionno'].toString();
@@ -231,7 +234,9 @@ class _LaunchGateState extends State<LaunchGate> {
             return;
           }
         }
-      } catch (_) {}
+      } catch (e) {
+        print('Auto login error: $e');
+      }
     }
 
     if (!mounted) return;
@@ -302,6 +307,14 @@ class MyApp extends StatelessWidget {
             memberNo: args['memberNo'],
           );
         },
+        // 💡 3. 골프 라운딩 라우트 등록
+        '/golfRounding': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>;
+          return GolfRoundingListScreen(
+            circleNo: args['circleNo'],
+            circleName: args['circleName'],
+          );
+        },
       },
     );
   }
@@ -338,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         if (data.containsKey('clubno') && data.containsKey('access_token')) {
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('access_token', data['access_token']);
+          await SecureStorage.setAccessToken(data['access_token']);
 
           await prefs.setBool('autoLoginEnabled', true);
           await prefs.setString('autoLoginPhone', phoneno);
@@ -584,8 +597,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          height: 140,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+          constraints: const BoxConstraints(minHeight: 110),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -603,25 +616,28 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: primaryNavy.withOpacity(0.05),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 32, color: primaryNavy),
+                child: Icon(icon, size: 28, color: primaryNavy),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                  height: 1.2,
+              const SizedBox(height: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -748,14 +764,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Image.network(
                       primaryImageUrl,
                       width: double.infinity,
-                      height: 250,
+                      height: 200,
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) {
                         if (secondaryImageUrl != null) {
                           return Image.network(
                             secondaryImageUrl,
                             width: double.infinity,
-                            height: 250,
+                            height: 200,
                             fit: BoxFit.contain,
                             errorBuilder: (context, error, stackTrace) {
                               return _buildFallbackImage();
@@ -808,11 +824,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       color: Colors.grey.shade100,
       width: double.infinity,
-      height: 250,
+      height: 200,
       child: Center(
         child: Image.asset(
           'assets/loginlogo.png',
-          width: 150,
+          width: 130,
           fit: BoxFit.contain,
         ),
       ),
@@ -864,11 +880,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.pushNamed(context, '/circleList', arguments: {'memberNo': memberNo});
               },
             ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
+            const SizedBox(width: 12),
             _buildMenuCard(
               title: '써클 공지사항',
               icon: Icons.campaign,

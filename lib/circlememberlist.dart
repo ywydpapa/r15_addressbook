@@ -3,6 +3,7 @@ import 'membertabsimple.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -86,9 +87,7 @@ class _CircleMemberListScreenState extends State<CircleMemberListScreen> {
 
   Future<List<Member>> fetchCircleMemberList(int circleNo) async {
     try {
-      // 1. 저장된 토큰 불러오기
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/getcirclemembers/$circleNo'),

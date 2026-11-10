@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 
@@ -127,8 +128,7 @@ class _SettingScreenState extends State<SettingScreen> {
     setState(() => _isLoading = true);
     final url = '${ApiConf.baseUrl}/phapp/getmask/$memberNo';
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse(url),
@@ -165,8 +165,7 @@ class _SettingScreenState extends State<SettingScreen> {
     String code = _securityCodes[level];
     final url = '${ApiConf.baseUrl}/phapp/maskYN/$memberNo/$code';
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse(url),
@@ -192,8 +191,7 @@ class _SettingScreenState extends State<SettingScreen> {
     if (memberNo == null) return;
     final url = '${ApiConf.baseUrl}/phapp/funcNo/$memberNo/$mode';
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse(url),

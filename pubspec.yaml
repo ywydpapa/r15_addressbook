@@ -1,5 +1,5 @@
 name: r15_addressbook
-description: "355-A지구 지역 주소록프로젝트"
+description: "355-A지구 주소록프로젝트"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: '355A Lions Club Members' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: '355A Lions Club Members' # Remove this line if you wish to publish 
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 4.0.3+56
+version: 4.1.0+57
 
 environment:
   sdk: ^3.7.2
@@ -43,6 +43,7 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  flutter_secure_storage: ^10.3.4
 
 dev_dependencies:
   flutter_test:

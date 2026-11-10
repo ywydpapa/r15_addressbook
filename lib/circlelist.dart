@@ -2,21 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'circlelogo.dart';
-import 'circle_event_manage.dart'; // 👈 새로 만들 행사 관리 화면 import
-import 'package:shared_preferences/shared_preferences.dart';
+import 'circle_event_manage.dart'; // 👈 행사 관리 화면 import
+import 'golf_rounding.dart'; // 👈 골프 라운딩 화면 import
 
 class Circle {
   final int circleNo;
   final String circleName;
+  final String circleType;
 
-  Circle({required this.circleNo, required this.circleName});
+  Circle({
+    required this.circleNo,
+    required this.circleName,
+    this.circleType = '',
+  });
 
   factory Circle.fromJson(Map<String, dynamic> json) {
     return Circle(
       circleNo: json['circleNo'] ?? 0,
       circleName: json['circleName'] ?? '',
+      circleType: json['circleType'] ?? '',
     );
+  }
+
+  bool get isGolfCircle {
+    final name = circleName.toLowerCase();
+    final type = circleType.toLowerCase();
+    return name.contains('골프') || name.contains('golf') || type.contains('golf') || type == 'golf';
   }
 }
 
@@ -45,8 +58,7 @@ class _CircleListScreenState extends State<CircleListScreen> {
   }
 
   Future<List<Circle>> fetchCircleList(int memberNo) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     final response = await http.get(
       Uri.parse('${ApiConf.baseUrl}/phapp/getmycircle/$memberNo'),
@@ -172,41 +184,119 @@ class _CircleListScreenState extends State<CircleListScreen> {
                               ],
                             ),
                           ),
-                          const Divider(height: 24, thickness: 1),
-                          // 행사 관리 버튼 영역
-                          SizedBox(
-                            width: double.infinity,
-                            height: 45,
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CircleEventManageScreen(
-                                      circleNo: circle.circleNo,
-                                      circleName: circle.circleName,
-                                      memberNo: _memberNo ?? '',
+                          const Divider(height: 20, thickness: 1),
+                          // 버튼 영역 (골프 써클인 경우에만 '골프 일정/시상' 버튼도 함께 노출)
+                          if (circle.isGolfCircle)
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 42,
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => CircleEventManageScreen(
+                                              circleNo: circle.circleNo,
+                                              circleName: circle.circleName,
+                                              memberNo: _memberNo ?? '',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.event_available, color: primaryNavy, size: 18),
+                                      label: const Text(
+                                        '행사/참석자',
+                                        style: TextStyle(
+                                          color: primaryNavy,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: primaryNavy, width: 1.5),
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                );
-                              },
-                              icon: const Icon(Icons.event_available, color: primaryNavy),
-                              label: const Text(
-                                '행사 및 참석자 관리',
-                                style: TextStyle(
-                                  color: primaryNavy,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
                                 ),
-                              ),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: primaryNavy, width: 1.5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 42,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => GolfRoundingListScreen(
+                                              circleNo: circle.circleNo,
+                                              circleName: circle.circleName,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.sports_golf, color: Colors.white, size: 18),
+                                      label: const Text(
+                                        '골프 일정/시상',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: primaryNavy,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        elevation: 1,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else
+                            SizedBox(
+                              width: double.infinity,
+                              height: 42,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => CircleEventManageScreen(
+                                        circleNo: circle.circleNo,
+                                        circleName: circle.circleName,
+                                        memberNo: _memberNo ?? '',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.event_available, color: primaryNavy, size: 18),
+                                label: const Text(
+                                  '행사 및 참석자 관리',
+                                  style: TextStyle(
+                                    color: primaryNavy,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: primaryNavy, width: 1.5),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),

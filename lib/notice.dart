@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 
 class NoticeScreen extends StatelessWidget {
   const NoticeScreen({Key? key}) : super(key: key);
@@ -64,8 +64,7 @@ class NoticeScreen extends StatelessWidget {
         url = '${ApiConf.baseUrl}/phapp/notice/$mregionNo/$memberNo';
       }
 
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse(url),
@@ -95,8 +94,7 @@ class NoticeScreen extends StatelessWidget {
   static Future<Map<String, dynamic>> fetchCircleDocs({required int memberNo}) async {
     try {
       final url = '${ApiConf.baseUrl}/phapp/circlenotice/$memberNo';
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse(url),
@@ -124,8 +122,7 @@ Future<void> postNoticeRead({
   required int noticeNo,
   required String noticeType,
 }) async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('access_token') ?? '';
+  final token = await SecureStorage.getAccessToken();
 
   final url = '${ApiConf.baseUrl}/phapp/noticeRead/$memberNo/$noticeNo/$noticeType';
 

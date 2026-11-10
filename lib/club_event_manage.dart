@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'config/api_config.dart';
+import 'package:r15_addressbook/config/secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 
@@ -63,8 +64,7 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/getclubevents/${widget.clubNo}?memberNo=${widget.memberNo}'),
@@ -103,8 +103,7 @@ class _ClubEventManageScreenState extends State<ClubEventManageScreen> {
   Future<void> _deleteEvent(int eventNo) async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse('${ApiConf.baseUrl}/phapp/club/event/delete/$eventNo'),
@@ -662,8 +661,7 @@ class _AddClubEventBottomSheetState extends State<AddClubEventBottomSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final bodyData = {
         'clubNo': widget.clubNo,
@@ -901,8 +899,7 @@ class _ClubEventAttendeeScreenState extends State<ClubEventAttendeeScreen> {
   // 본인 참석 정보 조회
   Future<void> _fetchMyAttendance() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse(
@@ -934,8 +931,7 @@ class _ClubEventAttendeeScreenState extends State<ClubEventAttendeeScreen> {
   // 전체 참석자 명단 조회
   Future<void> _fetchAttendees() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.get(
         Uri.parse('${ApiConf.baseUrl}/phapp/club/event/members/${widget.eventNo}'),
@@ -967,8 +963,7 @@ class _ClubEventAttendeeScreenState extends State<ClubEventAttendeeScreen> {
   }) async {
     setState(() => _isLoading = true);
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       final response = await http.post(
         Uri.parse('${ApiConf.baseUrl}/phapp/club/event/attend'),

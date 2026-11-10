@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:http/http.dart' as http;
 import 'config/api_config.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 토큰을 불러오기 위해 추가
+import 'package:r15_addressbook/config/secure_storage.dart';
 
 class NoticeViewerScreen extends StatefulWidget {
   const NoticeViewerScreen({super.key});
@@ -76,9 +76,7 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
     }
 
     try {
-      // 1. 저장된 토큰 불러오기
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
+      final token = await SecureStorage.getAccessToken();
 
       // 2. 헤더에 토큰을 담아서 GET 요청 보내기
       final res = await http.get(
@@ -125,9 +123,7 @@ class _NoticeViewerScreenState extends State<NoticeViewerScreen> {
   }
 
   Future<void> _postNoticeAttend({required String attend}) async {
-    // 1. 저장된 토큰 불러오기
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token') ?? '';
+    final token = await SecureStorage.getAccessToken();
 
     final url =
         '${ApiConf.baseUrl}/phapp/noticeAttend/$memberNo/$noticeNo/$noticeType/$attend';
